@@ -4,10 +4,11 @@ namespace WalletScanner.Services
     {
         // Logic to calculate and fetch performance metrics
 
-        public async Task<string> CalculateMetricsAsync(string walletAddress)
-        {
-            // Perform metric calculation (win/loss ratio, profitability, etc.)
-            return "Metrics for " + walletAddress;
-        }
+    public Task<string> CalculateMetricsAsync(string walletAddress)
+    {
+        // Perform metric calculation
+        return Task.FromResult($"Metrics for {walletAddress}");
+    }
+
     }
 }

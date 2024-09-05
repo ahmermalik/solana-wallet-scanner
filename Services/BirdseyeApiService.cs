@@ -1,41 +1,37 @@
-using System;
-using System.Collections.Generic;
+using RestSharp;
 using System.Threading.Tasks;
-
-namespace WalletScanner
+namespace WalletScanner.Services
 {
-    class Program
+    public class BirdseyeApiService
     {
-        static async Task Main(string[] args)
+        private readonly string _apiKey;
+
+        public BirdseyeApiService(string apiKey)
         {
-            // Initialize BirdseyeApiService with your API key
-            var service = new Services.BirdseyeApiService("8dd3bdb050ee480ba16b3c3e15a35db2");
+            _apiKey = apiKey;
+        }
 
-            // Define the array of wallet addresses
-            var wallets = new List<string>
-            {
-                "CTFJEcxBjbx8yP8siAqiyQ9QSg7bS3kPH43oRobjsWXw",
-                "55NQkFDwwW8noThkL9Rd5ngbgUU36fYZeos1k5ZwjGdn",
-                "Hw1T93eztqiqpPD8g3n5nHLTYxvBzNbx1SkpT9GJ65KW",
-                "9XA8NLjsubEMmX5nLXcX9RyHDVyGdzWAAiPugQyJb2wg",
-                "5iC1yoXYmUGsGBBLSKTgedya4cjQokaD3DxYoUTozz3c",
-                "j1oeQoPeuEDmjvyMwBmCWexzCQup77kbKKxV59CnYbd",
-                // Add as many wallets as needed
-            };
+        // Existing method for a single wallet
+        public async Task<string> GetTokenListForWalletAsync(string walletAddress)
+        {
+            var options = new RestClientOptions($"https://public-api.birdeye.so/v1/wallet/multichain_token_list?wallet={walletAddress}");
+            var client = new RestClient(options);
+            var request = new RestRequest();
 
-            // Loop through each wallet address and fetch token data
-            foreach (var wallet in wallets)
+            var response = await client.GetAsync(request);
+            return response.Content;
+        }
+
+        // Add this method to handle multiple wallets
+        public async Task<List<string>> GetTokenListForWalletsAsync(List<string> walletAddresses)
+        {
+            var results = new List<string>();
+            foreach (var walletAddress in walletAddresses)
             {
-                try
-                {
-                    var response = await service.GetTokenListForWalletAsync(wallet);
-                    Console.WriteLine($"Wallet: {wallet}, Response: {response}");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error fetching data for wallet {wallet}: {ex.Message}");
-                }
+                var result = await GetTokenListForWalletAsync(walletAddress);
+                results.Add(result);
             }
+            return results;
         }
     }
 }
