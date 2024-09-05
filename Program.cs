@@ -1,44 +1,35 @@
-var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+class Program
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    static async Task Main(string[] args)
+    {
+        // Initialize BirdseyeApiService with your API key
+        var service = new BirdseyeApiService("8dd3bdb050ee480ba16b3c3e15a35db2");
+
+        // Define the array of wallet addresses
+        var wallets = new List<string>
+        {
+            "CTFJEcxBjbx8yP8siAqiyQ9QSg7bS3kPH43oRobjsWXw",
+            "55NQkFDwwW8noThkL9Rd5ngbgUU36fYZeos1k5ZwjGdn",
+            "Hw1T93eztqiqpPD8g3n5nHLTYxvBzNbx1SkpT9GJ65KW",
+            "9XA8NLjsubEMmX5nLXcX9RyHDVyGdzWAAiPugQyJb2wg",
+            "5iC1yoXYmUGsGBBLSKTgedya4cjQokaD3DxYoUTozz3c",
+            "j1oeQoPeuEDmjvyMwBmCWexzCQup77kbKKxV59CnYbd",
+            // Add as many wallets as needed
+        };
+
+        // Loop through each wallet address and fetch token data
+        foreach (var wallet in wallets)
+        {
+            try
+            {
+                var response = await service.GetTokenListForWalletAsync(wallet);
+                Console.WriteLine($"Wallet: {wallet}, Response: {response}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching data for wallet {wallet}: {ex.Message}");
+            }
+        }
+    }
 }
 
-app.UseHttpsRedirection();
-
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
-
-app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}

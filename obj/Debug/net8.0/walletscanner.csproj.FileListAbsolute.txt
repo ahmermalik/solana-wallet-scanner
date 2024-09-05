@@ -1,0 +1,8 @@
+/Users/ahmermalik/Code/walletscanner/obj/Debug/net8.0/walletscanner.csproj.AssemblyReference.cache
+/Users/ahmermalik/Code/walletscanner/obj/Debug/net8.0/walletscanner.GeneratedMSBuildEditorConfig.editorconfig
+/Users/ahmermalik/Code/walletscanner/obj/Debug/net8.0/walletscanner.AssemblyInfoInputs.cache
+/Users/ahmermalik/Code/walletscanner/obj/Debug/net8.0/walletscanner.AssemblyInfo.cs
+/Users/ahmermalik/Code/walletscanner/obj/Debug/net8.0/walletscanner.csproj.CoreCompileInputs.cache
+/Users/ahmermalik/Code/walletscanner/obj/Debug/net8.0/walletscanner.MvcApplicationPartsAssemblyInfo.cs
+/Users/ahmermalik/Code/walletscanner/obj/Debug/net8.0/walletscanner.MvcApplicationPartsAssemblyInfo.cache
+/Users/ahmermalik/Code/walletscanner/obj/Debug/net8.0/walletscanner.sourcelink.json

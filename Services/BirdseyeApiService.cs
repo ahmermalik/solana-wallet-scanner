@@ -1,55 +1,40 @@
-using RestSharp;
 using System;
-using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
-public class BirdseyeApiService
+namespace WalletScanner
 {
-    private readonly string _apiKey;
-
-    public BirdseyeApiService(string apiKey)
+    class Program
     {
-        _apiKey = apiKey;
-    }
-
-    public async Task<string> GetTokenListForWalletAsync(string walletAddress)
-    {
-        var options = new RestClientOptions($"https://public-api.birdeye.so/v1/wallet/multichain_token_list?wallet={walletAddress}");
-        var client = new RestClient(options);
-        var request = new RestRequest();
-
-        var response = await client.GetAsync(request);
-        return response.Content;
-    }
-}
-
-class Program
-{
-    static async Task Main(string[] args)
-    {
-        // Initialize BirdseyeApiService with your API key
-        var service = new BirdseyeApiService("YOUR_API_KEY");
-
-        // Define the array of wallet addresses
-        var wallets = new List<string>
+        static async Task Main(string[] args)
         {
-            "0xf584f8728b874a6a5c7a8d4d387c9aae9172d621",
-            "wallet2",
-            "wallet3",
-            // Add as many wallets as needed
-        };
+            // Initialize BirdseyeApiService with your API key
+            var service = new Services.BirdseyeApiService("8dd3bdb050ee480ba16b3c3e15a35db2");
 
-        // Loop through each wallet address and fetch token data
-        foreach (var wallet in wallets)
-        {
-            try
+            // Define the array of wallet addresses
+            var wallets = new List<string>
             {
-                var response = await service.GetTokenListForWalletAsync(wallet);
-                Console.WriteLine($"Wallet: {wallet}, Response: {response}");
-            }
-            catch (Exception ex)
+                "CTFJEcxBjbx8yP8siAqiyQ9QSg7bS3kPH43oRobjsWXw",
+                "55NQkFDwwW8noThkL9Rd5ngbgUU36fYZeos1k5ZwjGdn",
+                "Hw1T93eztqiqpPD8g3n5nHLTYxvBzNbx1SkpT9GJ65KW",
+                "9XA8NLjsubEMmX5nLXcX9RyHDVyGdzWAAiPugQyJb2wg",
+                "5iC1yoXYmUGsGBBLSKTgedya4cjQokaD3DxYoUTozz3c",
+                "j1oeQoPeuEDmjvyMwBmCWexzCQup77kbKKxV59CnYbd",
+                // Add as many wallets as needed
+            };
+
+            // Loop through each wallet address and fetch token data
+            foreach (var wallet in wallets)
             {
-                Console.WriteLine($"Error fetching data for wallet {wallet}: {ex.Message}");
+                try
+                {
+                    var response = await service.GetTokenListForWalletAsync(wallet);
+                    Console.WriteLine($"Wallet: {wallet}, Response: {response}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error fetching data for wallet {wallet}: {ex.Message}");
+                }
             }
         }
     }
