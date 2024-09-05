@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "5CCNdQt+x6tRwheulX2F9lpOIa1veMpBqNAWGwylqoo=",
+  "Source": "walletscanner",
+  "BasePath": "_content/walletscanner",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}
