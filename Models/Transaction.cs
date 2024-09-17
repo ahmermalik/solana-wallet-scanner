@@ -8,6 +8,7 @@ namespace WalletScanner.Models
         public string TransactionType { get; set; }
         public DateTime Timestamp { get; set; }
         public decimal Price { get; set; }
+        public int WalletId { get; set; }
         public Wallet Wallet { get; set; }
     }
 }
