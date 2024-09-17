@@ -8,3 +8,12 @@ namespace WalletScanner.Models
         public decimal WhaleActivity { get; set; }
     }
 }
+/*
+CoinStats.cs
+Description: Represents statistics related to a specific coin/token.
+Properties:
+Token
+Accumulation
+Distribution
+WhaleActivity
+*/
