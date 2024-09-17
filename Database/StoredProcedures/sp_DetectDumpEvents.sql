@@ -1,4 +1,3 @@
--- sp_DetectDumpEvents: Identifies wallets that have sold a significant amount of a specific token within a defined timeframe.
 CREATE PROCEDURE sp_DetectDumpEvents
     @Token NVARCHAR(50),
     @ThresholdAmount DECIMAL(18, 8),
@@ -6,8 +5,6 @@ CREATE PROCEDURE sp_DetectDumpEvents
     @EndTime DATETIME
 AS
 BEGIN
-    SET NOCOUNT ON;
-
     SELECT 
         t.WalletAddress,
         SUM(t.Amount) AS TotalSold,

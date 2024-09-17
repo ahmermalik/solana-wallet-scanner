@@ -1,54 +1,80 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using WalletScanner.Services; 
-using Newtonsoft.Json; // Newtonsoft.Json for JSON formatting
-using Newtonsoft.Json.Linq;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using WalletScanner.Data;
+using Microsoft.EntityFrameworkCore;
+using WalletScanner.Services;
+using WalletScanner.Repositories;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
-namespace WalletScanner
+var builder = WebApplication.CreateBuilder(args);
+
+// **1. Configuration**
+// Load configuration from appsettings.json and environment variables
+builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                     .AddEnvironmentVariables();
+
+// **2. Services Registration**
+
+// **a. Database Context**
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// **b. Repositories**
+builder.Services.AddScoped<WalletRepository>();
+builder.Services.AddScoped<TransactionRepository>();
+builder.Services.AddScoped<WhaleActivityRepository>();
+builder.Services.AddScoped<AlertRepository>();
+builder.Services.AddScoped<DumpEventRepository>();
+
+// **c. Services**
+builder.Services.AddScoped<BirdseyeApiService>();
+builder.Services.AddScoped<WhaleMonitorService>();
+builder.Services.AddScoped<CoinStatsService>();
+builder.Services.AddScoped<MetricsService>();
+// builder.Services.AddScoped<NotificationService>();
+
+
+// **d. HttpClient Registration**
+builder.Services.AddHttpClient("BirdseyeApi", client =>
 {
-    class Program
-    {
-        static async Task Main(string[] args)
-        {
-            // Initialize BirdseyeApiService with your API key
-            var service = new BirdseyeApiService("2fa80300c1414df9947cc56e98acbc84");
+    client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+    // Additional configuration if needed, e.g., BaseAddress
+    // client.BaseAddress = new Uri("https://public-api.birdeye.so/");
+});
 
-            // Define the array of wallet addresses
-            var wallets = new List<string>
-            {  
-                "CTFJEcxBjbx8yP8siAqiyQ9QSg7bS3kPH43oRobjsWXw",
-                // "55NQkFDwwW8noThkL9Rd5ngbgUU36fYZeos1k5ZwjGdn",
-                // "Hw1T93eztqiqpPD8g3n5nHLTYxvBzNbx1SkpT9GJ65KW",
-                // "9XA8NLjsubEMmX5nLXcX9RyHDVyGdzWAAiPugQyJb2wg",
-                // "5iC1yoXYmUGsGBBLSKTgedya4cjQokaD3DxYoUTozz3c",
-                // "j1oeQoPeuEDmjvyMwBmCWexzCQup77kbKKxV59CnYbd",
-                // Add as many wallets as needed
-            };
+// **e. Controllers**
+builder.Services.AddControllers();
 
-            // Loop through each wallet address and fetch token data
-            foreach (var wallet in wallets)
-            {
-                try
-                {
-                    var response = await service.GetTokenListForWalletAsync(wallet);
-                    
-                    // Pretty-print the JSON response
-                    if (!string.IsNullOrEmpty(response))
-                    {
-                        var formattedJson = JToken.Parse(response).ToString(Formatting.Indented);
-                        Console.WriteLine($"Wallet: {wallet}, Response: \n{formattedJson}");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"No data found for wallet: {wallet}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error fetching data for wallet {wallet}: {ex.Message}");
-                }
-            }
-        }
-    }
+// **f. Swagger/OpenAPI (for API documentation and testing)**
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// **g. Background Services**
+// Temporarily disable the hosted service as it's not implemented yet
+// builder.Services.AddHostedService<WhaleMonitorBackgroundService>();
+
+// **3. Build the App**
+var app = builder.Build();
+
+// **4. Middleware Configuration**
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
+
+app.UseHttpsRedirection();
+
+app.UseRouting();
+
+// **Authentication & Authorization** (Optional - to be implemented)
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers();
+
+// **5. Run the App**
+app.Run();

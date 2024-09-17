@@ -6,8 +6,7 @@ namespace WalletScanner.Models
         public string Token { get; set; }
         public string WalletAddress { get; set; }
         public decimal Amount { get; set; }
-        public string ActivityType { get; set; } // "Accumulation" or "Distribution"
+        public string ActivityType { get; set; } // e.g., "Dump", "Accumulation"
         public DateTime Timestamp { get; set; }
-        // Additional fields as necessary
     }
 }

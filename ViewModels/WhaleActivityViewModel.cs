@@ -2,10 +2,10 @@ namespace WalletScanner.ViewModels
 {
     public class WhaleActivityViewModel
     {
-        public string Token { get; set; }
-        public string WalletAddress { get; set; }
+        public required string Token { get; set; }
+        public required string WalletAddress { get; set; }
         public decimal Amount { get; set; }
-        public string ActivityType { get; set; } // "Accumulation" or "Distribution"
+        public required string ActivityType { get; set; } // e.g., "Dump", "Accumulation"
         public DateTime Timestamp { get; set; }
     }
 }
