@@ -86,7 +86,7 @@ app.MapGet("/tokens", async (BirdseyeApiService birdseyeApiService) =>
     var walletAddresses = new List<string>
     {
         "CTFJEcxBjbx8yP8siAqiyQ9QSg7bS3kPH43oRobjsWXw",
-        "55NQkFDwwW8noThkL9Rd5ngbgUU36fYZeos1k5ZwjGdn"
+        // "55NQkFDwwW8noThkL9Rd5ngbgUU36fYZeos1k5ZwjGdn"
         // Add more wallet addresses as needed
     };
 

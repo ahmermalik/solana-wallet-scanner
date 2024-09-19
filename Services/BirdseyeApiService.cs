@@ -103,9 +103,9 @@ namespace WalletScanner.Services
         /// </summary>
         /// <param name="walletAddresses">List of wallet addresses.</param>
         /// <returns>A dictionary mapping each wallet address to its list of tokens.</returns>
-public async Task<Dictionary<string, List<string>>> GetTokenListForWalletsAsync(List<string> walletAddresses)
+public async Task<Dictionary<string, object>> GetTokenListForWalletsAsync(List<string> walletAddresses)
 {
-    var walletTokenMap = new Dictionary<string, List<string>>();
+    var walletDataMap = new Dictionary<string, object>();
 
     foreach (var walletAddress in walletAddresses)
     {
@@ -114,52 +114,76 @@ public async Task<Dictionary<string, List<string>>> GetTokenListForWalletsAsync(
             string endpoint = $"https://public-api.birdeye.so/v1/wallet/token_list?wallet={walletAddress}";
             HttpResponseMessage response = await _httpClient.GetAsync(endpoint);
 
-            // Read raw content
             var content = await response.Content.ReadAsStringAsync();
             _logger.LogInformation($"Raw response for wallet {walletAddress}: {content}");
 
             if (response.IsSuccessStatusCode)
             {
-                // Check if the response is JSON
                 if (response.Content.Headers.ContentType.MediaType == "application/json")
                 {
-                    // Parse the raw content as a JSON object
                     JObject json = JObject.Parse(content);
 
-                    // Format the JSON for pretty-printing using Newtonsoft
-                    string formattedJson = JsonConvert.SerializeObject(json, Formatting.Indented);
+                    var data = json["data"];
+                    if (data != null)
+                    {
+                        var items = data["items"]?.ToObject<List<JObject>>() ?? new List<JObject>();
 
-                    // Log the formatted JSON
-                    _logger.LogInformation($"Formatted JSON response for wallet {walletAddress}:\n{formattedJson}");
+                        var parsedItems = new List<object>();
+                        foreach (var item in items)
+                        {
+                            var parsedItem = new
+                            {
+                                address = item["address"]?.ToString(),
+                                decimals = item["decimals"]?.ToObject<int>(),
+                                balance = item["balance"]?.ToObject<long>(),
+                                uiAmount = item["uiAmount"]?.ToObject<decimal>(),
+                                chainId = item["chainId"]?.ToString(),
+                                name = item["name"]?.ToString(),
+                                symbol = item["symbol"]?.ToString(),
+                                logoURI = item["logoURI"]?.ToString(),
+                                priceUsd = item["priceUsd"]?.ToObject<decimal>(),
+                                valueUsd = item["valueUsd"]?.ToObject<decimal>()
+                            };
 
-                    // Extract the tokens from the JSON
-                    var tokens = json["data"]?["tokens"]?.ToObject<List<string>>() ?? new List<string>();
-                    walletTokenMap.Add(walletAddress, tokens);
+                            parsedItems.Add(parsedItem);
+                        }
+
+                        walletDataMap[walletAddress] = new
+                        {
+                            wallet = data["wallet"]?.ToString(),
+                            totalUsd = data["totalUsd"]?.ToObject<decimal>(),
+                            items = parsedItems
+                        };
+                    }
+                    else
+                    {
+                        _logger.LogWarning($"No 'data' field found in the response for wallet {walletAddress}");
+                        walletDataMap[walletAddress] = new { error = "No data found" };
+                    }
                 }
                 else
                 {
                     _logger.LogError($"Unexpected content type: {response.Content.Headers.ContentType.MediaType}");
-                    walletTokenMap.Add(walletAddress, new List<string>()); // Fallback to empty list
+                    walletDataMap[walletAddress] = new { error = "Unexpected content type" };
                 }
             }
             else
             {
-                _logger.LogError($"Failed to fetch tokens for wallet: {walletAddress}. Status Code: {response.StatusCode}");
-                walletTokenMap.Add(walletAddress, new List<string>()); // Fallback to empty list
+                _logger.LogError($"Failed to fetch data for wallet: {walletAddress}. Status Code: {response.StatusCode}");
+                walletDataMap[walletAddress] = new { error = "API call failed" };
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Exception occurred while fetching tokens for wallet: {walletAddress}.");
-            walletTokenMap.Add(walletAddress, new List<string>()); // Fallback to empty list
+            _logger.LogError(ex, $"Exception occurred while fetching data for wallet: {walletAddress}.");
+            walletDataMap[walletAddress] = new { error = "Exception occurred" };
         }
     }
 
-    // Log the overall results
-    string formattedResult = JsonConvert.SerializeObject(walletTokenMap, Formatting.Indented);
+    string formattedResult = JsonConvert.SerializeObject(walletDataMap, Formatting.Indented);
     _logger.LogInformation($"Results for wallets: {formattedResult}");
 
-    return walletTokenMap;
+    return walletDataMap;
 }
     }
 }
