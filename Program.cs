@@ -8,6 +8,8 @@ using WalletScanner.Repositories;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json; // Newtonsoft.Json for JSON formatting
+using Newtonsoft.Json.Linq;
 
 var builder = WebApplication.CreateBuilder(args);
 
