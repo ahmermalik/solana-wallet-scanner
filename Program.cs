@@ -7,6 +7,7 @@ using WalletScanner.Services;
 using WalletScanner.Repositories;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Http;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,16 +31,17 @@ builder.Services.AddScoped<DumpEventRepository>();
 
 // **c. Services**
 builder.Services.AddScoped<BirdseyeApiService>();
-builder.Services.AddScoped<WhaleMonitorService>();
-builder.Services.AddScoped<CoinStatsService>();
-builder.Services.AddScoped<MetricsService>();
+// Temporarily comment out services that might cause errors
+// builder.Services.AddScoped<WhaleMonitorService>();
+// builder.Services.AddScoped<CoinStatsService>();
+// builder.Services.AddScoped<MetricsService>();
 // builder.Services.AddScoped<NotificationService>();
-
 
 // **d. HttpClient Registration**
 builder.Services.AddHttpClient("BirdseyeApi", client =>
 {
-    client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+    client.DefaultRequestHeaders.Accept.Add(
+        new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
     // Additional configuration if needed, e.g., BaseAddress
     // client.BaseAddress = new Uri("https://public-api.birdeye.so/");
 });
@@ -71,10 +73,24 @@ app.UseHttpsRedirection();
 app.UseRouting();
 
 // **Authentication & Authorization** (Optional - to be implemented)
-app.UseAuthentication();
-app.UseAuthorization();
+// app.UseAuthentication();
+// app.UseAuthorization();
 
 app.MapControllers();
+
+// **Add API Endpoint for GetTokenListForWalletsAsync**
+app.MapGet("/tokens", async (BirdseyeApiService birdseyeApiService) =>
+{
+    var walletAddresses = new List<string>
+    {
+        "CTFJEcxBjbx8yP8siAqiyQ9QSg7bS3kPH43oRobjsWXw",
+        "55NQkFDwwW8noThkL9Rd5ngbgUU36fYZeos1k5ZwjGdn"
+        // Add more wallet addresses as needed
+    };
+
+    var result = await birdseyeApiService.GetTokenListForWalletsAsync(walletAddresses);
+    return Results.Json(result);
+});
 
 // **5. Run the App**
 app.Run();

@@ -15,25 +15,25 @@ namespace WalletScanner.Controllers
             _whaleMonitorService = whaleMonitorService;
         }
 
-        [HttpGet("monitor/{token}")]
-        public async Task<IActionResult> GetWhaleActivities(string token)
-        {
-            var activities = await _whaleMonitorService.GetWhaleActivitiesAsync(token);
-            return Ok(activities);
-        }
+        // [HttpGet("monitor/{token}")]
+        // public async Task<IActionResult> GetWhaleActivities(string token)
+        // {
+        //     var activities = await _whaleMonitorService.GetWhaleActivitiesAsync(token);
+        //     return Ok(activities);
+        // }
 
-        [HttpPost("alert")]
-        public async Task<IActionResult> CreateAlert(AlertViewModel alert)
-        {
-            await _whaleMonitorService.CreateAlertAsync(alert);
-            return Ok("Alert created successfully.");
-        }
+        // [HttpPost("alert")]
+        // public async Task<IActionResult> CreateAlert(AlertViewModel alert)
+        // {
+        //     await _whaleMonitorService.CreateAlertAsync(alert);
+        //     return Ok("Alert created successfully.");
+        // }
 
-        [HttpGet("alerts")]
-        public async Task<IActionResult> GetAlerts()
-        {
-            var alerts = await _whaleMonitorService.GetAlertsAsync();
-            return Ok(alerts);
-        }
+        // [HttpGet("alerts")]
+        // public async Task<IActionResult> GetAlerts()
+        // {
+        //     var alerts = await _whaleMonitorService.GetAlertsAsync();
+        //     return Ok(alerts);
+        // }
     }
 }

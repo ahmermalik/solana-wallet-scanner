@@ -33,7 +33,7 @@ namespace WalletScanner.BackgroundServices
                     using (var scope = _serviceProvider.CreateScope())
                     {
                         var whaleMonitorService = scope.ServiceProvider.GetRequiredService<WhaleMonitorService>();
-                        await whaleMonitorService.ProcessWhaleActivitiesAsync();
+                        // await whaleMonitorService.ProcessWhaleActivitiesAsync();
                     }
                 }
                 catch (Exception ex)
