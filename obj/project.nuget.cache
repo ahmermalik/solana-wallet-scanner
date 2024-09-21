@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "+4NK85QNcbA=",
+  "dgSpecHash": "k7brBMNfhOU=",
   "success": true,
-  "projectFilePath": "/Users/ahmermalik/Documents/Code/solana-wallet-scanner/walletscanner.csproj",
+  "projectFilePath": "/Users/ahmermalik/Code/walletscanner/walletscanner.csproj",
   "expectedPackageFiles": [
     "/Users/ahmermalik/.nuget/packages/azure.core/1.35.0/azure.core.1.35.0.nupkg.sha512",
     "/Users/ahmermalik/.nuget/packages/azure.identity/1.10.3/azure.identity.1.10.3.nupkg.sha512",
@@ -23,6 +23,7 @@
     "/Users/ahmermalik/.nuget/packages/microsoft.entityframeworkcore.design/8.0.8/microsoft.entityframeworkcore.design.8.0.8.nupkg.sha512",
     "/Users/ahmermalik/.nuget/packages/microsoft.entityframeworkcore.relational/8.0.8/microsoft.entityframeworkcore.relational.8.0.8.nupkg.sha512",
     "/Users/ahmermalik/.nuget/packages/microsoft.entityframeworkcore.sqlserver/8.0.8/microsoft.entityframeworkcore.sqlserver.8.0.8.nupkg.sha512",
+    "/Users/ahmermalik/.nuget/packages/microsoft.entityframeworkcore.tools/8.0.8/microsoft.entityframeworkcore.tools.8.0.8.nupkg.sha512",
     "/Users/ahmermalik/.nuget/packages/microsoft.extensions.apidescription.server/6.0.5/microsoft.extensions.apidescription.server.6.0.5.nupkg.sha512",
     "/Users/ahmermalik/.nuget/packages/microsoft.extensions.caching.abstractions/8.0.0/microsoft.extensions.caching.abstractions.8.0.0.nupkg.sha512",
     "/Users/ahmermalik/.nuget/packages/microsoft.extensions.caching.memory/8.0.0/microsoft.extensions.caching.memory.8.0.0.nupkg.sha512",

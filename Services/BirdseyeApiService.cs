@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json; // Newtonsoft.Json for JSON formatting
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json; // Newtonsoft.Json for JSON formatting
+using Newtonsoft.Json.Linq;
 
 namespace WalletScanner.Services
 {
@@ -16,14 +16,21 @@ namespace WalletScanner.Services
         private readonly HttpClient _httpClient;
         private readonly ILogger<BirdseyeApiService> _logger;
 
-        public BirdseyeApiService(IConfiguration configuration, ILogger<BirdseyeApiService> logger, IHttpClientFactory httpClientFactory)
+        public BirdseyeApiService(
+            IConfiguration configuration,
+            ILogger<BirdseyeApiService> logger,
+            IHttpClientFactory httpClientFactory
+        )
         {
-            _apiKey = configuration["Birdeye:ApiKey"] 
-                       ?? throw new ArgumentNullException("Birdeye:ApiKey is not configured.");
+            _apiKey =
+                configuration["Birdeye:ApiKey"]
+                ?? throw new ArgumentNullException("Birdeye:ApiKey is not configured.");
             _logger = logger;
 
             _httpClient = httpClientFactory.CreateClient();
-            _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            _httpClient.DefaultRequestHeaders.Accept.Add(
+                new MediaTypeWithQualityHeaderValue("application/json")
+            );
             _httpClient.DefaultRequestHeaders.Add("X-API-KEY", _apiKey);
         }
 
@@ -103,87 +110,106 @@ namespace WalletScanner.Services
         /// </summary>
         /// <param name="walletAddresses">List of wallet addresses.</param>
         /// <returns>A dictionary mapping each wallet address to its list of tokens.</returns>
-public async Task<Dictionary<string, object>> GetTokenListForWalletsAsync(List<string> walletAddresses)
-{
-    var walletDataMap = new Dictionary<string, object>();
-
-    foreach (var walletAddress in walletAddresses)
-    {
-        try
+        public async Task<Dictionary<string, object>> GetTokenListForWalletsAsync(
+            List<string> walletAddresses
+        )
         {
-            string endpoint = $"https://public-api.birdeye.so/v1/wallet/token_list?wallet={walletAddress}";
-            HttpResponseMessage response = await _httpClient.GetAsync(endpoint);
+            var walletDataMap = new Dictionary<string, object>();
 
-            var content = await response.Content.ReadAsStringAsync();
-            _logger.LogInformation($"Raw response for wallet {walletAddress}: {content}");
-
-            if (response.IsSuccessStatusCode)
+            foreach (var walletAddress in walletAddresses)
             {
-                if (response.Content.Headers.ContentType.MediaType == "application/json")
+                try
                 {
-                    JObject json = JObject.Parse(content);
+                    string endpoint =
+                        $"https://public-api.birdeye.so/v1/wallet/token_list?wallet={walletAddress}";
+                    HttpResponseMessage response = await _httpClient.GetAsync(endpoint);
 
-                    var data = json["data"];
-                    if (data != null)
+                    var content = await response.Content.ReadAsStringAsync();
+                    _logger.LogInformation($"Raw response for wallet {walletAddress}: {content}");
+
+                    if (response.IsSuccessStatusCode)
                     {
-                        var items = data["items"]?.ToObject<List<JObject>>() ?? new List<JObject>();
-
-                        var parsedItems = new List<object>();
-                        foreach (var item in items)
+                        if (response.Content.Headers.ContentType.MediaType == "application/json")
                         {
-                            var parsedItem = new
+                            JObject json = JObject.Parse(content);
+
+                            var data = json["data"];
+                            if (data != null)
                             {
-                                address = item["address"]?.ToString(),
-                                decimals = item["decimals"]?.ToObject<int>(),
-                                balance = item["balance"]?.ToObject<long>(),
-                                uiAmount = item["uiAmount"]?.ToObject<decimal>(),
-                                chainId = item["chainId"]?.ToString(),
-                                name = item["name"]?.ToString(),
-                                symbol = item["symbol"]?.ToString(),
-                                logoURI = item["logoURI"]?.ToString(),
-                                priceUsd = item["priceUsd"]?.ToObject<decimal>(),
-                                valueUsd = item["valueUsd"]?.ToObject<decimal>()
-                            };
+                                var items =
+                                    data["items"]?.ToObject<List<JObject>>() ?? new List<JObject>();
 
-                            parsedItems.Add(parsedItem);
+                                var parsedItems = new List<object>();
+                                foreach (var item in items)
+                                {
+                                    var parsedItem = new
+                                    {
+                                        address = item["address"]?.ToString(),
+                                        decimals = item["decimals"]?.ToObject<int>(),
+                                        balance = item["balance"]?.ToObject<long>(),
+                                        uiAmount = item["uiAmount"]?.ToObject<decimal>(),
+                                        chainId = item["chainId"]?.ToString(),
+                                        name = item["name"]?.ToString(),
+                                        symbol = item["symbol"]?.ToString(),
+                                        logoURI = item["logoURI"]?.ToString(),
+                                        priceUsd = item["priceUsd"]?.ToObject<decimal>(),
+                                        valueUsd = item["valueUsd"]?.ToObject<decimal>(),
+                                    };
+
+                                    parsedItems.Add(parsedItem);
+                                }
+
+                                walletDataMap[walletAddress] = new
+                                {
+                                    wallet = data["wallet"]?.ToString(),
+                                    totalUsd = data["totalUsd"]?.ToObject<decimal>(),
+                                    items = parsedItems,
+                                };
+                            }
+                            else
+                            {
+                                _logger.LogWarning(
+                                    $"No 'data' field found in the response for wallet {walletAddress}"
+                                );
+                                walletDataMap[walletAddress] = new { error = "No data found" };
+                            }
                         }
-
-                        walletDataMap[walletAddress] = new
+                        else
                         {
-                            wallet = data["wallet"]?.ToString(),
-                            totalUsd = data["totalUsd"]?.ToObject<decimal>(),
-                            items = parsedItems
-                        };
+                            _logger.LogError(
+                                $"Unexpected content type: {response.Content.Headers.ContentType.MediaType}"
+                            );
+                            walletDataMap[walletAddress] = new
+                            {
+                                error = "Unexpected content type",
+                            };
+                        }
                     }
                     else
                     {
-                        _logger.LogWarning($"No 'data' field found in the response for wallet {walletAddress}");
-                        walletDataMap[walletAddress] = new { error = "No data found" };
+                        _logger.LogError(
+                            $"Failed to fetch data for wallet: {walletAddress}. Status Code: {response.StatusCode}"
+                        );
+                        walletDataMap[walletAddress] = new { error = "API call failed" };
                     }
                 }
-                else
+                catch (Exception ex)
                 {
-                    _logger.LogError($"Unexpected content type: {response.Content.Headers.ContentType.MediaType}");
-                    walletDataMap[walletAddress] = new { error = "Unexpected content type" };
+                    _logger.LogError(
+                        ex,
+                        $"Exception occurred while fetching data for wallet: {walletAddress}."
+                    );
+                    walletDataMap[walletAddress] = new { error = "Exception occurred" };
                 }
             }
-            else
-            {
-                _logger.LogError($"Failed to fetch data for wallet: {walletAddress}. Status Code: {response.StatusCode}");
-                walletDataMap[walletAddress] = new { error = "API call failed" };
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Exception occurred while fetching data for wallet: {walletAddress}.");
-            walletDataMap[walletAddress] = new { error = "Exception occurred" };
-        }
-    }
 
-    string formattedResult = JsonConvert.SerializeObject(walletDataMap, Formatting.Indented);
-    _logger.LogInformation($"Results for wallets: {formattedResult}");
+            string formattedResult = JsonConvert.SerializeObject(
+                walletDataMap,
+                Formatting.Indented
+            );
+            _logger.LogInformation($"Results for wallets: {formattedResult}");
 
-    return walletDataMap;
-}
+            return walletDataMap;
+        }
     }
 }

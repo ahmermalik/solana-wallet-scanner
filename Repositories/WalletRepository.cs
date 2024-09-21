@@ -1,9 +1,8 @@
 using System.Collections.Generic;
-using System.Threading.Tasks;
-using WalletScanner.Models;
-using WalletScanner.Data;
-using Microsoft.EntityFrameworkCore;
 using System.Linq;
+using Microsoft.EntityFrameworkCore;
+using WalletScanner.Data;
+using WalletScanner.Models;
 
 namespace WalletScanner.Repositories
 {
@@ -16,29 +15,12 @@ namespace WalletScanner.Repositories
             _context = context;
         }
 
-        public async Task<Wallet?> GetWalletByAddressAsync(string address)
+        public List<WalletHolding> GetWalletHoldingsByToken(string tokenSymbol)
         {
-            return await _context.Wallets
-                .Include(w => w.Transactions)
-                .FirstOrDefaultAsync(w => w.Address == address);
+            return _context
+                .WalletHoldings.Include(wh => wh.Token)
+                .Where(wh => wh.Token != null && wh.Token.Symbol == tokenSymbol)
+                .ToList();
         }
-
-        public async Task<List<Wallet>> GetLargeWalletsAsync(string token, decimal threshold)
-        {
-            // Implement actual logic to fetch large wallets
-            // Example: Fetch wallets holding more than 'threshold' amount of 'token'
-            return await _context.Wallets
-                .Include(w => w.Transactions)
-                .Where(w => w.Transactions.Any(t => t.Token == token && t.TransactionType == "buy" && t.Amount >= threshold))
-                .ToListAsync();
-        }
-
-        public async Task AddWalletAsync(Wallet wallet)
-        {
-            _context.Wallets.Add(wallet);
-            await _context.SaveChangesAsync();
-        }
-
-        // Additional methods as needed
     }
 }

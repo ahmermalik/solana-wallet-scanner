@@ -1,23 +1,16 @@
 CREATE PROCEDURE sp_DetectDumpEvents
-    @Token NVARCHAR(50),
-    @ThresholdAmount DECIMAL(18, 8),
-    @StartTime DATETIME,
-    @EndTime DATETIME
 AS
 BEGIN
+    -- Logic to detect dump events
     SELECT 
-        t.WalletAddress,
-        SUM(t.Amount) AS TotalSold,
-        COUNT(t.Id) AS SellCount,
-        MAX(t.Timestamp) AS LastSellTime
-    FROM 
-        Transactions t
-    WHERE 
-        t.Token = @Token
-        AND t.TransactionType = 'sell'
-        AND t.Timestamp BETWEEN @StartTime AND @EndTime
-    GROUP BY 
-        t.WalletAddress
-    HAVING 
-        SUM(t.Amount) >= @ThresholdAmount
+        t.TokenId,
+        SUM(CASE WHEN ta.ActivityType = 'Sell' THEN ta.Amount ELSE 0 END) AS VolumeSold,
+        ((MAX(t.Price) - MIN(t.Price)) / MAX(t.Price)) * 100 AS PriceDropPercent,
+        GETDATE() AS DetectedAt,
+        'Detected significant dumping activity' AS Details
+    FROM WhaleActivities ta
+    JOIN Tokens t ON ta.TokenId = t.TokenId
+    WHERE ta.Timestamp >= DATEADD(HOUR, -1, GETDATE()) -- Last hour
+    GROUP BY t.TokenId
+    HAVING SUM(CASE WHEN ta.ActivityType = 'Sell' THEN ta.Amount ELSE 0 END) > @Threshold -- Define @Threshold
 END

@@ -277,3 +277,4 @@
 /Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/Debug/net8.0/walletscanner.genruntimeconfig.cache
 /Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/Debug/net8.0/ref/walletscanner.dll
 /Users/ahmermalik/Documents/Code/solana-wallet-scanner/bin/Debug/net8.0/Newtonsoft.Json.dll
+/Users/ahmermalik/Code/walletscanner/bin/Debug/net8.0/Newtonsoft.Json.dll

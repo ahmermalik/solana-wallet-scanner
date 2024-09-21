@@ -1,12 +1,21 @@
+using System;
+
 namespace WalletScanner.Models
 {
     public class WhaleActivity
     {
-        public int Id { get; set; }
-        public string Token { get; set; }
-        public string WalletAddress { get; set; }
+        public int WhaleActivityId { get; set; } // Primary Key
+
+        // Foreign Keys and Navigation Properties
+        public int WalletId { get; set; }
+        public Wallet Wallet { get; set; }
+        public int TokenId { get; set; }
+        public Token Token { get; set; }
+
+        // Activity Details
+        public string ActivityType { get; set; } // e.g., "Buy" or "Sell"
         public decimal Amount { get; set; }
-        public string ActivityType { get; set; } // e.g., "Dump", "Accumulation"
-        public DateTime Timestamp { get; set; }
+        public decimal ValueUsd { get; set; }
+        public DateTime Timestamp { get; set; } // Make non-nullable for consistency
     }
 }
