@@ -104,11 +104,7 @@ app.MapGet(
     }
 );
 
-app.MapGet(
-    "/",
-    return "You made it to the server. 🏆"
-
-)
+app.MapGet("/", () => "You made it to the server. 🏆");
 
 // **5. Run the App**
 app.Run();
