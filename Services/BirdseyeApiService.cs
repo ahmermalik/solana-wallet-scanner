@@ -125,7 +125,6 @@ namespace WalletScanner.Services
                     HttpResponseMessage response = await _httpClient.GetAsync(endpoint);
 
                     var content = await response.Content.ReadAsStringAsync();
-                    _logger.LogInformation($"Raw response for wallet {walletAddress}: {content}");
 
                     if (response.IsSuccessStatusCode)
                     {
