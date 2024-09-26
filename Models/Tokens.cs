@@ -17,6 +17,7 @@ namespace WalletScanner.Models
         public decimal? PriceChangePercent24h { get; set; }
         public string LogoURI { get; set; }
         public DateTime? LastUpdated { get; set; }
+        public string Network { get; set; }
 
         // Navigation properties
         public ICollection<WalletHolding> WalletHoldings { get; set; }

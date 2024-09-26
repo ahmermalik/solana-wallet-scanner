@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json; // Newtonsoft.Json for JSON formatting
 using Newtonsoft.Json.Linq;
+using WalletScanner.Helpers;
 
 namespace WalletScanner.Services
 {
@@ -206,9 +207,163 @@ namespace WalletScanner.Services
                 walletDataMap,
                 Formatting.Indented
             );
-            _logger.LogInformation($"Results for wallets: {formattedResult}");
+            // _logger.LogInformation($"Results for wallets: {formattedResult}");
 
             return walletDataMap;
+        }
+
+        public async Task<Dictionary<string, object>> GetTrendingTokensAsync()
+        {
+            var trendingTokenDataMap = new Dictionary<string, object>();
+            string endpoint = "https://public-api.birdeye.so/defi/token_trending";
+
+            try
+            {
+                var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
+
+                // Adding the blockchain-specific header for Solana (if necessary)
+                request.Headers.Add("x-chain", "solana");
+
+                HttpResponseMessage response = await _httpClient.SendAsync(request);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    JObject json = JObject.Parse(content);
+
+                    var data = json["data"];
+                    if (data != null)
+                    {
+                        var tokens =
+                            data["tokens"]?.ToObject<List<JObject>>() ?? new List<JObject>();
+
+                        var parsedTokens = new List<object>();
+                        foreach (var token in tokens)
+                        {
+                            var parsedToken = new
+                            {
+                                address = token["address"]?.ToString(),
+                                decimals = token["decimals"]?.ToObject<int>(),
+                                liquidity = token["liquidity"]?.ToObject<decimal>(),
+                                logoURI = token["logoURI"]?.ToString(),
+                                name = token["name"]?.ToString(),
+                                symbol = token["symbol"]?.ToString(),
+                                volume24hUSD = token["volume24hUSD"]?.ToObject<decimal>(),
+                                rank = token["rank"]?.ToObject<int>(),
+                                price = token["price"]?.ToObject<decimal>(),
+                            };
+
+                            parsedTokens.Add(parsedToken);
+                        }
+                        trendingTokenDataMap["tokens"] = parsedTokens;
+                        trendingTokenDataMap["updateTime"] =
+                            WalletScanner.Helpers.DateTimeHelper.UnixTimeStampToDateTime(
+                                data["updateTime"]?.ToObject<long>() ?? 0
+                            );
+                        trendingTokenDataMap["total"] = trendingTokenDataMap["total"] = data[
+                            "total"
+                        ]
+                            ?.ToObject<int>();
+                    }
+                    else
+                    {
+                        _logger.LogWarning("No 'data' field found in the response.");
+                        trendingTokenDataMap["error"] = "No data found";
+                    }
+                }
+                else
+                {
+                    _logger.LogError(
+                        $"Failed to fetch trending tokens. Status Code: {response.StatusCode}"
+                    );
+                    trendingTokenDataMap["error"] = "API call failed";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching trending tokens.");
+                trendingTokenDataMap["error"] = "Exception occurred";
+            }
+
+            // Returning the parsed trending token data in the same format as the GetTokenListForWalletsAsync method
+            return trendingTokenDataMap;
+        }
+
+        public async Task<Dictionary<string, object>> GetTokenListAsync()
+        {
+            var tokenDataMap = new Dictionary<string, object>();
+            string endpoint =
+                "https://public-api.birdeye.so/defi/tokenlist?sort_by=v24hUSD&sort_type=desc&offset=0&limit=50&min_liquidity=10000";
+
+            try
+            {
+                var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
+
+                // Adding the blockchain-specific header for Solana
+                request.Headers.Add("x-chain", "solana");
+
+                HttpResponseMessage response = await _httpClient.SendAsync(request);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    JObject json = JObject.Parse(content);
+
+                    var data = json["data"];
+                    if (data != null)
+                    {
+                        var tokens =
+                            data["tokens"]?.ToObject<List<JObject>>() ?? new List<JObject>();
+
+                        var parsedTokens = new List<object>();
+                        foreach (var token in tokens)
+                        {
+                            var parsedToken = new
+                            {
+                                address = token["address"]?.ToString(),
+                                decimals = token["decimals"]?.ToObject<int>(),
+                                lastTradeUnixTime = WalletScanner.Helpers.DateTimeHelper.UnixTimeStampToDateTime(
+                                    token["lastTradeUnixTime"]?.ToObject<long>() ?? 0
+                                ),
+                                liquidity = token["liquidity"]?.ToObject<decimal>(),
+                                logoURI = token["logoURI"]?.ToString(),
+                                mc = token["mc"]?.ToObject<decimal>(),
+                                name = token["name"]?.ToString(),
+                                symbol = token["symbol"]?.ToString(),
+                                v24hChangePercent = token["v24hChangePercent"]
+                                    ?.ToObject<decimal?>(),
+                                v24hUSD = token["v24hUSD"]?.ToObject<decimal?>(),
+                            };
+
+                            parsedTokens.Add(parsedToken);
+                        }
+
+                        tokenDataMap["tokens"] = parsedTokens;
+                        tokenDataMap["updateUnixTime"] = data["updateUnixTime"]?.ToObject<long>();
+                        tokenDataMap["updateTime"] = data["updateTime"]?.ToString();
+                        tokenDataMap["total"] = data["total"]?.ToObject<int>();
+                    }
+                    else
+                    {
+                        _logger.LogWarning("No 'data' field found in the response.");
+                        tokenDataMap["error"] = "No data found";
+                    }
+                }
+                else
+                {
+                    _logger.LogError(
+                        $"Failed to fetch token list. Status Code: {response.StatusCode}"
+                    );
+                    tokenDataMap["error"] = "API call failed";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the token list.");
+                tokenDataMap["error"] = "Exception occurred";
+            }
+            // Returning the parsed token data in the same format as the GetTokenListForWalletsAsync method
+            return tokenDataMap;
         }
     }
 }

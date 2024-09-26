@@ -95,12 +95,29 @@ app.MapGet(
         var walletAddresses = new List<string>
         {
             "CTFJEcxBjbx8yP8siAqiyQ9QSg7bS3kPH43oRobjsWXw",
-            "55NQkFDwwW8noThkL9Rd5ngbgUU36fYZeos1k5ZwjGdn"
+            "55NQkFDwwW8noThkL9Rd5ngbgUU36fYZeos1k5ZwjGdn",
             // Add more wallet addresses as needed
         };
 
         var result = await birdseyeApiService.GetTokenListForWalletsAsync(walletAddresses);
         return Results.Json(result);
+    }
+);
+app.MapGet(
+    "/trending-tokens",
+    async (BirdseyeApiService birdseyeApiService) =>
+    {
+        var result = await birdseyeApiService.GetTrendingTokensAsync();
+        return result != null ? Results.Json(result) : Results.StatusCode(500);
+    }
+);
+
+app.MapGet(
+    "/token-list",
+    async (BirdseyeApiService birdseyeApiService) =>
+    {
+        var result = await birdseyeApiService.GetTokenListAsync();
+        return result != null ? Results.Json(result) : Results.StatusCode(500);
     }
 );
 
