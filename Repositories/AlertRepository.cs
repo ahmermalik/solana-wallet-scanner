@@ -23,7 +23,12 @@ namespace WalletScanner.Repositories
 
         public async Task<List<Alert>> GetAllAlertsAsync()
         {
-            return await _context.Alerts.ToListAsync();
+            return await _context.Alerts
+                .Include(a => a.User)
+                .Include(a => a.Token)
+                .Include(a => a.Wallet)
+                .Include(a => a.Network)
+                .ToListAsync();
         }
 
         // Additional methods for updating or deleting alerts can be added here

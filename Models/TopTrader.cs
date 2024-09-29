@@ -6,7 +6,11 @@ namespace WalletScanner.Models
     {
         public int Id { get; set; }
         public int TokenId { get; set; }
+        public Token Token { get; set; }
         public int WalletId { get; set; }
+        public Wallet Wallet { get; set; }
+        public int NetworkId { get; set; }    // Added NetworkId
+        public Network Network { get; set; }  // Added Network navigation property
         public decimal? Volume { get; set; }
         public int? TradeCount { get; set; }
         public int? TradeBuyCount { get; set; }
@@ -15,9 +19,5 @@ namespace WalletScanner.Models
         public decimal? VolumeSell { get; set; }
         public string Period { get; set; }
         public DateTime? UpdatedAt { get; set; }
-
-        // Navigation properties
-        public Token Token { get; set; }
-        public Wallet Wallet { get; set; }
     }
 }

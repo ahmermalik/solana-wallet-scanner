@@ -10,6 +10,10 @@ namespace WalletScanner.Models
         public int TokenId { get; set; }
         public Token Token { get; set; }
 
+        // Network relationship
+        public int NetworkId { get; set; }  // Added NetworkId
+        public Network Network { get; set; } // Added Network navigation property
+
         // Event Details
         public decimal VolumeSold { get; set; }
         public decimal PriceDropPercent { get; set; }

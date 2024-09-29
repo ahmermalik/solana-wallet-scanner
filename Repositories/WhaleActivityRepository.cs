@@ -1,5 +1,4 @@
 using System;
-using System.Data;
 using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -17,40 +16,31 @@ namespace WalletScanner.Repositories
             _context = context;
         }
 
-        // 1. Insert Whale Activity
+        // Insert Whale Activity
         public async Task InsertWhaleActivityAsync(WhaleActivity activity)
         {
             // Ensure that the Token and Wallet navigation properties are loaded
             if (activity.Token == null || activity.Wallet == null)
             {
-                // Optionally, load the Token and Wallet from the database
-                activity = await _context
-                    .WhaleActivities.Include(wa => wa.Token)
-                    .Include(wa => wa.Wallet)
-                    .FirstOrDefaultAsync(wa => wa.WhaleActivityId == activity.WhaleActivityId);
-
-                if (activity == null || activity.Token == null || activity.Wallet == null)
-                {
-                    throw new InvalidOperationException(
-                        "Token and Wallet must be loaded in WhaleActivity."
-                    );
-                }
+                throw new InvalidOperationException("Token and Wallet must be provided in WhaleActivity.");
             }
 
-            var tokenParam = new SqlParameter("@Token", activity.Token.Symbol); // Use Token.Symbol or Token.Address
-            var walletAddressParam = new SqlParameter("@WalletAddress", activity.Wallet.Address);
-            var amountParam = new SqlParameter("@Amount", activity.Amount);
-            var activityTypeParam = new SqlParameter("@ActivityType", activity.ActivityType);
-            var timestampParam = new SqlParameter("@Timestamp", activity.Timestamp);
+            // Set NetworkId based on Token or Wallet
+            activity.NetworkId = activity.Token.NetworkId;
 
-            await _context.Database.ExecuteSqlRawAsync(
-                "EXEC sp_InsertWhaleActivity @Token, @WalletAddress, @Amount, @ActivityType, @Timestamp",
-                tokenParam,
-                walletAddressParam,
-                amountParam,
-                activityTypeParam,
-                timestampParam
-            );
+            _context.WhaleActivities.Add(activity);
+            await _context.SaveChangesAsync();
+        }
+
+        // Get Whale Activities by Token and Network
+        public async Task<List<WhaleActivity>> GetWhaleActivitiesByTokenAsync(int tokenId, int networkId)
+        {
+            return await _context.WhaleActivities
+                .Include(wa => wa.Token)
+                .Include(wa => wa.Wallet)
+                .Include(wa => wa.Network)
+                .Where(wa => wa.TokenId == tokenId && wa.NetworkId == networkId)
+                .ToListAsync();
         }
     }
 }

@@ -18,17 +18,19 @@ namespace WalletScanner.Repositories
             _context = context;
         }
 
-        // 2. Detect Dump Events
-        public async Task<List<DumpEvent>> DetectDumpEventsAsync(string token, decimal threshold, DateTime startTime, DateTime endTime)
+        // Detect Dump Events
+        public async Task<List<DumpEvent>> DetectDumpEventsAsync(int tokenId, decimal threshold, DateTime startTime, DateTime endTime)
         {
-            var tokenParam = new SqlParameter("@Token", token);
+            var tokenIdParam = new SqlParameter("@TokenId", tokenId);
             var thresholdParam = new SqlParameter("@ThresholdAmount", threshold);
             var startTimeParam = new SqlParameter("@StartTime", startTime);
             var endTimeParam = new SqlParameter("@EndTime", endTime);
 
             return await _context.DumpEvents
-                .FromSqlRaw("EXEC sp_DetectDumpEvents @Token, @ThresholdAmount, @StartTime, @EndTime",
-                    tokenParam, thresholdParam, startTimeParam, endTimeParam)
+                .FromSqlRaw("EXEC sp_DetectDumpEvents @TokenId, @ThresholdAmount, @StartTime, @EndTime",
+                    tokenIdParam, thresholdParam, startTimeParam, endTimeParam)
+                .Include(de => de.Token)
+                .Include(de => de.Network)
                 .ToListAsync();
         }
     }

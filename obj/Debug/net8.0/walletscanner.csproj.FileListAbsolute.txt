@@ -137,6 +137,15 @@
 /Users/ahmermalik/Code/walletscanner/obj/Debug/net8.0/walletscanner.pdb
 /Users/ahmermalik/Code/walletscanner/obj/Debug/net8.0/walletscanner.genruntimeconfig.cache
 /Users/ahmermalik/Code/walletscanner/obj/Debug/net8.0/ref/walletscanner.dll
+/Users/ahmermalik/Code/walletscanner/bin/Debug/net8.0/Newtonsoft.Json.dll
+/Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/Debug/net8.0/walletscanner.csproj.AssemblyReference.cache
+/Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/Debug/net8.0/walletscanner.GeneratedMSBuildEditorConfig.editorconfig
+/Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/Debug/net8.0/walletscanner.AssemblyInfoInputs.cache
+/Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/Debug/net8.0/walletscanner.AssemblyInfo.cs
+/Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/Debug/net8.0/walletscanner.csproj.CoreCompileInputs.cache
+/Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/Debug/net8.0/walletscanner.MvcApplicationPartsAssemblyInfo.cs
+/Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/Debug/net8.0/walletscanner.MvcApplicationPartsAssemblyInfo.cache
+/Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/Debug/net8.0/walletscanner.sourcelink.json
 /Users/ahmermalik/Documents/Code/solana-wallet-scanner/bin/Debug/net8.0/appsettings.Development.json
 /Users/ahmermalik/Documents/Code/solana-wallet-scanner/bin/Debug/net8.0/appsettings.json
 /Users/ahmermalik/Documents/Code/solana-wallet-scanner/bin/Debug/net8.0/walletscanner
@@ -172,6 +181,7 @@
 /Users/ahmermalik/Documents/Code/solana-wallet-scanner/bin/Debug/net8.0/Microsoft.SqlServer.Server.dll
 /Users/ahmermalik/Documents/Code/solana-wallet-scanner/bin/Debug/net8.0/Microsoft.Win32.SystemEvents.dll
 /Users/ahmermalik/Documents/Code/solana-wallet-scanner/bin/Debug/net8.0/Mono.TextTemplating.dll
+/Users/ahmermalik/Documents/Code/solana-wallet-scanner/bin/Debug/net8.0/Newtonsoft.Json.dll
 /Users/ahmermalik/Documents/Code/solana-wallet-scanner/bin/Debug/net8.0/RestSharp.dll
 /Users/ahmermalik/Documents/Code/solana-wallet-scanner/bin/Debug/net8.0/Swashbuckle.AspNetCore.Swagger.dll
 /Users/ahmermalik/Documents/Code/solana-wallet-scanner/bin/Debug/net8.0/Swashbuckle.AspNetCore.SwaggerGen.dll
@@ -254,14 +264,6 @@
 /Users/ahmermalik/Documents/Code/solana-wallet-scanner/bin/Debug/net8.0/runtimes/win/lib/net6.0/System.Runtime.Caching.dll
 /Users/ahmermalik/Documents/Code/solana-wallet-scanner/bin/Debug/net8.0/runtimes/win/lib/net6.0/System.Security.Cryptography.ProtectedData.dll
 /Users/ahmermalik/Documents/Code/solana-wallet-scanner/bin/Debug/net8.0/runtimes/win/lib/net6.0/System.Windows.Extensions.dll
-/Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/Debug/net8.0/walletscanner.csproj.AssemblyReference.cache
-/Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/Debug/net8.0/walletscanner.GeneratedMSBuildEditorConfig.editorconfig
-/Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/Debug/net8.0/walletscanner.AssemblyInfoInputs.cache
-/Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/Debug/net8.0/walletscanner.AssemblyInfo.cs
-/Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/Debug/net8.0/walletscanner.csproj.CoreCompileInputs.cache
-/Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/Debug/net8.0/walletscanner.MvcApplicationPartsAssemblyInfo.cs
-/Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/Debug/net8.0/walletscanner.MvcApplicationPartsAssemblyInfo.cache
-/Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/Debug/net8.0/walletscanner.sourcelink.json
 /Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/Debug/net8.0/staticwebassets.build.json
 /Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/Debug/net8.0/staticwebassets.development.json
 /Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/Debug/net8.0/staticwebassets/msbuild.walletscanner.Microsoft.AspNetCore.StaticWebAssets.props
@@ -276,5 +278,3 @@
 /Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/Debug/net8.0/walletscanner.pdb
 /Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/Debug/net8.0/walletscanner.genruntimeconfig.cache
 /Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/Debug/net8.0/ref/walletscanner.dll
-/Users/ahmermalik/Documents/Code/solana-wallet-scanner/bin/Debug/net8.0/Newtonsoft.Json.dll
-/Users/ahmermalik/Code/walletscanner/bin/Debug/net8.0/Newtonsoft.Json.dll

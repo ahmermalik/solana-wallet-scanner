@@ -1,4 +1,3 @@
-// Repositories/TokenRepository.cs
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -19,19 +18,26 @@ namespace WalletScanner.Repositories
         // Fetch all tokens
         public async Task<List<Token>> GetAllTokensAsync()
         {
-            return await _context.Tokens.ToListAsync();
+            return await _context.Tokens
+                .Include(t => t.Network)
+                .ToListAsync();
         }
 
-        // Fetch a token by its address
-        public async Task<Token> GetTokenByAddressAsync(string address)
+        // Fetch a token by its address and network
+        public async Task<Token> GetTokenByAddressAsync(string address, int networkId)
         {
-            return await _context.Tokens.FirstOrDefaultAsync(t => t.Address == address);
+            return await _context.Tokens
+                .Include(t => t.Network)
+                .FirstOrDefaultAsync(t => t.Address == address && t.NetworkId == networkId);
         }
 
-        // Fetch token metrics (assuming a method exists in your repository)
+        // Fetch token metrics
         public async Task<TokenMetric> GetTokenMetricsAsync(int tokenId)
         {
-            return await _context.TokenMetrics.FirstOrDefaultAsync(tm => tm.TokenId == tokenId);
+            return await _context.TokenMetrics
+                .Include(tm => tm.Token)
+                .Include(tm => tm.Network)
+                .FirstOrDefaultAsync(tm => tm.TokenId == tokenId);
         }
     }
 }

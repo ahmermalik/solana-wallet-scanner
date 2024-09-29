@@ -1,4 +1,3 @@
-// Repositories/TopTraderRepository.cs
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -26,6 +25,7 @@ namespace WalletScanner.Repositories
                     tt.TokenId == trader.TokenId
                     && tt.WalletId == trader.WalletId
                     && tt.Period == trader.Period
+                    && tt.NetworkId == trader.NetworkId
                 );
 
                 if (existingTrader != null)
@@ -49,12 +49,14 @@ namespace WalletScanner.Repositories
             await _context.SaveChangesAsync();
         }
 
-        // Fetch top traders by token
-        public async Task<List<TopTrader>> GetTopTradersByTokenAsync(int tokenId)
+        // Fetch top traders by token and network
+        public async Task<List<TopTrader>> GetTopTradersByTokenAsync(int tokenId, int networkId)
         {
-            return await _context
-                .TopTraders.Include(tt => tt.Wallet)
-                .Where(tt => tt.TokenId == tokenId)
+            return await _context.TopTraders
+                .Include(tt => tt.Wallet)
+                .Include(tt => tt.Token)
+                .Include(tt => tt.Network)
+                .Where(tt => tt.TokenId == tokenId && tt.NetworkId == networkId)
                 .ToListAsync();
         }
     }

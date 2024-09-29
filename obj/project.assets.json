@@ -4643,11 +4643,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/ahmermalik/Code/walletscanner/walletscanner.csproj",
+      "projectUniqueName": "/Users/ahmermalik/Documents/Code/solana-wallet-scanner/walletscanner.csproj",
       "projectName": "walletscanner",
-      "projectPath": "/Users/ahmermalik/Code/walletscanner/walletscanner.csproj",
+      "projectPath": "/Users/ahmermalik/Documents/Code/solana-wallet-scanner/walletscanner.csproj",
       "packagesPath": "/Users/ahmermalik/.nuget/packages/",
-      "outputPath": "/Users/ahmermalik/Code/walletscanner/obj/",
+      "outputPath": "/Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/Users/ahmermalik/.nuget/NuGet/NuGet.Config"

@@ -16,10 +16,17 @@ namespace WalletScanner.Repositories
             _context = context;
         }
 
-        public async Task<List<Transaction>> GetTransactionsForWallet(string walletAddress)
+        public async Task<List<Transaction>> GetTransactionsForWalletAsync(string walletAddress, int networkId)
         {
             return await _context.Transactions
-                .Where(t => t.Wallet.Address == walletAddress)
+                .Include(t => t.FromWallet)
+                .Include(t => t.ToWallet)
+                .Include(t => t.Token)
+                .Include(t => t.Network)
+                .Where(t =>
+                    (t.FromWallet != null && t.FromWallet.Address == walletAddress && t.FromWallet.NetworkId == networkId) ||
+                    (t.ToWallet != null && t.ToWallet.Address == walletAddress && t.ToWallet.NetworkId == networkId)
+                )
                 .ToListAsync();
         }
     }
