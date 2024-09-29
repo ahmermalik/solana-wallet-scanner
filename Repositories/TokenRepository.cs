@@ -31,6 +31,18 @@ namespace WalletScanner.Repositories
                 .FirstOrDefaultAsync(t => t.Address == address && t.NetworkId == networkId);
         }
 
+            // Method to get a token by its address
+        public async Task<Token> GetByAddressAsync(string address)
+        {
+            return await _context.Tokens
+                .FirstOrDefaultAsync(t => t.Address == address);
+        }
+        // Method to add a new token
+        public async Task AddAsync(Token token)
+        {
+            _context.Tokens.Add(token);
+            await _context.SaveChangesAsync();
+        }
         // Fetch token metrics
         public async Task<TokenMetric> GetTokenMetricsAsync(int tokenId)
         {

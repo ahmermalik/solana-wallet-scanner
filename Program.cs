@@ -32,15 +32,12 @@ builder.Services.AddScoped<TransactionRepository>();
 builder.Services.AddScoped<WhaleActivityRepository>();
 builder.Services.AddScoped<AlertRepository>();
 builder.Services.AddScoped<DumpEventRepository>();
+builder.Services.AddScoped<TokenRepository>();
+builder.Services.AddScoped<WalletHoldingRepository>();
 
 // **c. Services**
 builder.Services.AddScoped<BirdseyeApiService>();
-
-// Temporarily comment out services that might cause errors
-// builder.Services.AddScoped<WhaleMonitorService>();
-// builder.Services.AddScoped<CoinStatsService>();
-// builder.Services.AddScoped<MetricsService>();
-// builder.Services.AddScoped<NotificationService>();
+builder.Services.AddScoped<TokenDataService>();
 
 // **d. HttpClient Registration**
 builder.Services.AddHttpClient(
