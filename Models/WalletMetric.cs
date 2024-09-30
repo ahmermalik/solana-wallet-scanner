@@ -11,6 +11,7 @@ namespace WalletScanner.Models
         public decimal? CostBasis { get; set; }
         public int? TradeFrequency { get; set; }
         public decimal? TradeSizeAverage { get; set; }
+        public decimal? TotalUsdValue { get; set; } // Added property
         public DateTime? LastUpdated { get; set; }
 
         // Navigation properties

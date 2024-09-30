@@ -15,10 +15,16 @@ namespace WalletScanner.Repositories
             _context = context;
         }
 
-        public async Task<List<string>> GetAllWalletAddressesAsync()
+        public async Task<List<Wallet>> GetAllWalletsAsync()
         {
             return await _context.Wallets
-                .Select(w => w.Address)
+                .Select(w => new Wallet
+                {
+                    Address = w.Address,
+                    NetworkId = w.NetworkId,  // Ensure NetworkId is fetched
+                    TotalUsdValue = w.TotalUsdValue,
+                    LastUpdated = w.LastUpdated
+                })
                 .ToListAsync();
         }
 

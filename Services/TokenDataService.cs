@@ -1,6 +1,7 @@
 using WalletScanner.Repositories;
 using WalletScanner.Models;
 using WalletScanner.Services;
+using Microsoft.Extensions.Logging;
 
 public class TokenDataService
 {
@@ -8,81 +9,132 @@ public class TokenDataService
     private readonly BirdseyeApiService _birdseyeApiService;
     private readonly TokenRepository _tokenRepository;
     private readonly WalletHoldingRepository _walletHoldingRepository;
+    private readonly ILogger<TokenDataService> _logger; 
 
     public TokenDataService(
         WalletRepository walletRepository,
         BirdseyeApiService birdseyeApiService,
         TokenRepository tokenRepository,
-        WalletHoldingRepository walletHoldingRepository
+        WalletHoldingRepository walletHoldingRepository,
+        ILogger<TokenDataService> logger
     )
     {
         _walletRepository = walletRepository;
         _birdseyeApiService = birdseyeApiService;
         _tokenRepository = tokenRepository;
         _walletHoldingRepository = walletHoldingRepository;
+        _logger = logger;
     }
 
     public async Task UpdateWalletTokensAsync()
     {
-        // Step 1: Get all wallets from the database
-        var walletAddresses = await _walletRepository.GetAllWalletAddressesAsync();
-
-        if (walletAddresses == null || !walletAddresses.Any())
+        try
         {
-            // Log or throw error if no wallets are found
-            return;
-        }
+            // Step 1: Get all wallets with NetworkId from the database
+            var wallets = await _walletRepository.GetAllWalletsAsync();
 
-        // Step 2: Fetch token data from Birdseye API
-        var tokenData = await _birdseyeApiService.GetTokenListForWalletsAsync(walletAddresses);
-
-        // Step 3: Insert or update the token and wallet holdings data
-        foreach (var wallet in tokenData)
-        {
-            var walletAddress = wallet.Key;
-            var walletTokens = wallet.Value as dynamic;
-
-            if (walletTokens?.items == null) continue;
-
-            foreach (var token in walletTokens.items)
+            if (wallets == null || !wallets.Any())
             {
-                // Example parsing data from API
-                var tokenAddress = (string)token.address;
-                var tokenSymbol = (string)token.symbol;
-                var tokenName = (string)token.name;
-                var tokenDecimals = (int)token.decimals;
-                var tokenPriceUsd = (decimal)token.priceUsd;
-                var tokenValueUsd = (decimal)token.valueUsd;
+                // Log warning if no wallets are found
+                _logger.LogWarning("No wallets found to update tokens.");
+                return;
+            }
 
-                // Step 4: Insert token into Tokens table (if not exists)
-                var existingToken = await _tokenRepository.GetByAddressAsync(tokenAddress);
-                if (existingToken == null)
+            // Step 2: Extract the list of wallet addresses for the API call
+            var walletAddresses = wallets.Select(w => w.Address).ToList();
+
+            // Step 3: Fetch token data from Birdseye API
+            var tokenData = await _birdseyeApiService.GetTokenListForWalletsAsync(walletAddresses);
+
+            // Step 4: Insert or update the token and wallet holdings data
+            foreach (var wallet in tokenData)
+            {
+                var walletAddress = wallet.Key;
+                var walletTokens = wallet.Value as dynamic;
+
+                if (walletTokens?.items == null)
                 {
-                    var newToken = new Token
-                    {
-                        Address = tokenAddress,
-                        Symbol = tokenSymbol,
-                        Name = tokenName,
-                        Decimals = tokenDecimals,
-                        Price = tokenPriceUsd,
-                        LastUpdated = DateTime.UtcNow
-                    };
-                    await _tokenRepository.AddAsync(newToken);
+                    _logger.LogWarning($"No tokens found for wallet address: {walletAddress}");
+                    continue;
                 }
 
-                // Step 5: Insert or update wallet holdings
-                var balance = (long)token.balance;
-                var uiAmount = (decimal)token.uiAmount;
+                // Find the wallet entry that corresponds to the wallet address
+                var walletEntry = wallets.FirstOrDefault(w => w.Address == walletAddress);
+                if (walletEntry == null) 
+                {
+                    _logger.LogWarning($"Wallet with address {walletAddress} not found in the database.");
+                    continue;  // Skip if wallet is not found in the database
+                }
 
-                await _walletHoldingRepository.UpsertWalletHoldingAsync(
-                    walletAddress,
-                    tokenAddress,
-                    balance,
-                    uiAmount,
-                    tokenPriceUsd,
-                    tokenValueUsd
-                );
+                var networkId = walletEntry.NetworkId;  // Get the NetworkId from the wallet
+
+                foreach (var token in walletTokens.items)
+                {
+                    try
+                    {
+                        // Parse data from API with null handling
+                        var tokenAddress = token.address as string;
+                        var tokenSymbol = token.symbol as string;
+                        var tokenName = token.name as string;
+                        var tokenDecimals = token.decimals != null ? (int?)token.decimals : null;
+                        var tokenPriceUsd = token.priceUsd != null ? (decimal?)token.priceUsd : null;
+                        var tokenValueUsd = token.valueUsd != null ? (decimal?)token.valueUsd : null;
+
+                        // Log token info, handle nulls
+                        _logger.LogInformation($"Token Address: {tokenAddress}, Symbol: {tokenSymbol ?? "NULL"}, Name: {tokenName ?? "NULL"}");
+
+                        // Check for essential fields
+                        if (string.IsNullOrWhiteSpace(tokenSymbol) || string.IsNullOrWhiteSpace(tokenName))
+                        {
+                            _logger.LogWarning($"Token with address {tokenAddress} has missing Symbol or Name. Skipping.");
+                            continue;
+                        }
+
+                        // Step 5: Insert token into Tokens table (if not exists)
+                        var existingToken = await _tokenRepository.GetByAddressAsync(tokenAddress);
+                        if (existingToken == null)
+                        {
+                            var newToken = new Token
+                            {
+                                Address = tokenAddress,
+                                Symbol = tokenSymbol,
+                                Name = tokenName,
+                                Decimals = tokenDecimals,
+                                Price = tokenPriceUsd,
+                                NetworkId = networkId,  // Use the correct NetworkId from the wallet
+                                LastUpdated = DateTime.UtcNow
+                            };
+                            await _tokenRepository.AddAsync(newToken);
+                            _logger.LogInformation($"Added new token: {tokenSymbol} ({tokenName})");
+                        }
+
+                        // Step 6: Insert or update wallet holdings
+                        var balance = token.balance != null ? (long?)token.balance : null;
+                        var uiAmount = token.uiAmount != null ? (decimal?)token.uiAmount : null;
+
+                        // Handle potential nulls or assign default values
+                        await _walletHoldingRepository.UpsertWalletHoldingAsync(
+                            walletAddress,
+                            tokenAddress,
+                            balance ?? 0,
+                            uiAmount ?? 0,
+                            tokenPriceUsd ?? 0,
+                            tokenValueUsd ?? 0
+                        );
+                        _logger.LogInformation($"Updated holdings for token: {tokenSymbol} in wallet: {walletAddress}");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"Error processing token for wallet: {walletAddress}");
+                        // Optionally, decide whether to continue or halt
+                    }
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while updating wallet tokens.");
+            throw; // Re-throw if you want the exception to propagate
         }
     }
 }
