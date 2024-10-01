@@ -1,12 +1,16 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json; // Newtonsoft.Json for JSON formatting
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Polly;
+using Polly.Retry;
 using WalletScanner.Helpers;
 
 namespace WalletScanner.Services
@@ -16,6 +20,10 @@ namespace WalletScanner.Services
         private readonly string _apiKey;
         private readonly HttpClient _httpClient;
         private readonly ILogger<BirdseyeApiService> _logger;
+        private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy;
+        private readonly SemaphoreSlim _semaphore;
+        private readonly int _requestLimitPerSecond = 13; // Approx. 13 requests per second (1000 requests/minute limit)
+        private readonly int _delayBetweenBatchesInMs = 1000; // 1 second delay between batches
 
         public BirdseyeApiService(
             IConfiguration configuration,
@@ -33,183 +41,137 @@ namespace WalletScanner.Services
                 new MediaTypeWithQualityHeaderValue("application/json")
             );
             _httpClient.DefaultRequestHeaders.Add("X-API-KEY", _apiKey);
+
+            // Initialize Polly retry policy
+            _retryPolicy = Policy
+                .HandleResult<HttpResponseMessage>(r => (int)r.StatusCode == 429)
+                .WaitAndRetryAsync(
+                    retryCount: 3,
+                    sleepDurationProvider: attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)),
+                    onRetry: (response, timespan, retryAttempt, context) =>
+                    {
+                        _logger.LogWarning(
+                            $"Retry {retryAttempt} after {timespan.Seconds} seconds due to 429."
+                        );
+                    }
+                );
+
+            // Limit concurrent requests
+            _semaphore = new SemaphoreSlim(_requestLimitPerSecond); // Adjust based on rate limits
         }
 
-        /// <summary>
-        /// Retrieves the list of monitored tokens.
-        /// </summary>
-        /// <returns>List of token symbols.</returns>
-        // public async Task<List<string>> GetMonitoredTokensAsync()
-        // {
-        //     string endpoint = "https://public-api.birdeye.so/defi/price?address=So11111111111111111111111111111111111111112";
-
-        //     try
-        //     {
-        //         HttpResponseMessage response = await _httpClient.GetAsync(endpoint);
-
-        //         if (response.IsSuccessStatusCode)
-        //         {
-        //             string content = await response.Content.ReadAsStringAsync();
-        //             JObject json = JObject.Parse(content);
-
-        //             // Assuming tokens are under "data.tokens"
-        //             var tokens = json["data"]?["tokens"]?.ToObject<List<string>>() ?? new List<string>();
-        //             return tokens;
-        //         }
-        //         else
-        //         {
-        //             _logger.LogError($"Failed to fetch monitored tokens. Status Code: {response.StatusCode}");
-        //             return new List<string> { "SOL", "USDC", "XYZ" }; // Fallback to default tokens
-        //         }
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         _logger.LogError(ex, "Exception occurred while fetching monitored tokens.");
-        //         return new List<string> { "SOL", "USDC", "XYZ" }; // Fallback to default tokens
-        //     }
-        // }
-
-        /// <summary>
-        /// Retrieves the transaction history for a specific wallet and token.
-        /// </summary>
-        /// <param name="walletAddress">The wallet address to query.</param>
-        /// <param name="token">The token symbol.</param>
-        /// <returns>List of transactions.</returns>
-        // public async Task<List<string>> GetTransactionHistoryAsync(string walletAddress, string token)
-        // {
-        //     string endpoint = "https://public-api.birdeye.so/v1/wallet/tx_list";
-        //     var requestUri = $"{endpoint}?wallet={walletAddress}&token={token}&chain=solana"; // Assuming Solana; adjust as needed
-
-        //     try
-        //     {
-        //         HttpResponseMessage response = await _httpClient.GetAsync(requestUri);
-
-        //         if (response.IsSuccessStatusCode)
-        //         {
-        //             string content = await response.Content.ReadAsStringAsync();
-        //             JObject json = JObject.Parse(content);
-
-        //             // Assuming the transactions are under "data.transactions"
-        //             var transactions = json["data"]?["transactions"]?.ToObject<List<string>>() ?? new List<string>();
-        //             return transactions;
-        //         }
-        //         else
-        //         {
-        //             _logger.LogError($"Failed to fetch transaction history for wallet: {walletAddress}, Token: {token}. Status Code: {response.StatusCode}");
-        //             return new List<string>();
-        //         }
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         _logger.LogError(ex, $"Exception occurred while fetching transaction history for wallet: {walletAddress}, Token: {token}.");
-        //         return new List<string>();
-        //     }
-        // }
-
-        /// <summary>
-        /// Retrieves the list of tokens for multiple wallets.
-        /// </summary>
-        /// <param name="walletAddresses">List of wallet addresses.</param>
-        /// <returns>A dictionary mapping each wallet address to its list of tokens.</returns>
         public async Task<Dictionary<string, object>> GetTokenListForWalletsAsync(
             List<string> walletAddresses
         )
         {
-            var walletDataMap = new Dictionary<string, object>();
+            var walletDataMap = new ConcurrentDictionary<string, object>();
+            var tasks = new List<Task>();
 
             foreach (var walletAddress in walletAddresses)
             {
-                try
-                {
-                    string endpoint =
-                        $"https://public-api.birdeye.so/v1/wallet/token_list?wallet={walletAddress}";
-                    HttpResponseMessage response = await _httpClient.GetAsync(endpoint);
+                await _semaphore.WaitAsync();
 
-                    var content = await response.Content.ReadAsStringAsync();
-
-                    if (response.IsSuccessStatusCode)
+                tasks.Add(
+                    Task.Run(async () =>
                     {
-                        if (response.Content.Headers.ContentType.MediaType == "application/json")
+                        try
                         {
-                            JObject json = JObject.Parse(content);
+                            string endpoint =
+                                $"https://public-api.birdeye.so/v1/wallet/token_list?wallet={walletAddress}";
+                            HttpResponseMessage response = await _retryPolicy.ExecuteAsync(
+                                () => _httpClient.GetAsync(endpoint)
+                            );
 
-                            var data = json["data"];
-                            if (data != null)
+                            var content = await response.Content.ReadAsStringAsync();
+
+                            if (response.IsSuccessStatusCode)
                             {
-                                var items =
-                                    data["items"]?.ToObject<List<JObject>>() ?? new List<JObject>();
-
-                                var parsedItems = new List<object>();
-                                foreach (var item in items)
+                                if (
+                                    response.Content.Headers.ContentType.MediaType
+                                    == "application/json"
+                                )
                                 {
-                                    var parsedItem = new
+                                    JObject json = JObject.Parse(content);
+
+                                    var data = json["data"];
+                                    if (data != null)
                                     {
-                                        address = item["address"]?.ToString(),
-                                        decimals = item["decimals"]?.ToObject<int>(),
-                                        balance = item["balance"]?.ToObject<long>(),
-                                        uiAmount = item["uiAmount"]?.ToObject<decimal>(),
-                                        chainId = item["chainId"]?.ToString(),
-                                        name = item["name"]?.ToString(),
-                                        symbol = item["symbol"]?.ToString(),
-                                        logoURI = item["logoURI"]?.ToString(),
-                                        priceUsd = item["priceUsd"]?.ToObject<decimal>(),
-                                        valueUsd = item["valueUsd"]?.ToObject<decimal>(),
-                                    };
+                                        var items =
+                                            data["items"]?.ToObject<List<JObject>>()
+                                            ?? new List<JObject>();
 
-                                    parsedItems.Add(parsedItem);
+                                        var parsedItems = new List<object>();
+                                        foreach (var item in items)
+                                        {
+                                            var parsedItem = new
+                                            {
+                                                address = item["address"]?.ToString(),
+                                                decimals = item["decimals"]?.ToObject<int>(),
+                                                balance = item["balance"]?.ToObject<long>(),
+                                                uiAmount = item["uiAmount"]?.ToObject<decimal>(),
+                                                chainId = item["chainId"]?.ToString(),
+                                                name = item["name"]?.ToString(),
+                                                symbol = item["symbol"]?.ToString(),
+                                                logoURI = item["logoURI"]?.ToString(),
+                                                priceUsd = item["priceUsd"]?.ToObject<decimal>(),
+                                                valueUsd = item["valueUsd"]?.ToObject<decimal>(),
+                                            };
+
+                                            parsedItems.Add(parsedItem);
+                                        }
+
+                                        walletDataMap[walletAddress] = new
+                                        {
+                                            wallet = data["wallet"]?.ToString(),
+                                            totalUsd = data["totalUsd"]?.ToObject<decimal>(),
+                                            items = parsedItems,
+                                        };
+                                    }
+                                    else
+                                    {
+                                        _logger.LogWarning(
+                                            $"No 'data' field for wallet {walletAddress}"
+                                        );
+                                        walletDataMap[walletAddress] = new { error = "No data" };
+                                    }
                                 }
-
-                                walletDataMap[walletAddress] = new
+                                else
                                 {
-                                    wallet = data["wallet"]?.ToString(),
-                                    totalUsd = data["totalUsd"]?.ToObject<decimal>(),
-                                    items = parsedItems,
-                                };
+                                    _logger.LogError(
+                                        $"Unexpected content type: {response.Content.Headers.ContentType.MediaType}"
+                                    );
+                                    walletDataMap[walletAddress] = new
+                                    {
+                                        error = "Bad content type",
+                                    };
+                                }
                             }
                             else
                             {
-                                _logger.LogWarning(
-                                    $"No 'data' field found in the response for wallet {walletAddress}"
+                                _logger.LogError(
+                                    $"Failed for wallet: {walletAddress}. Status: {response.StatusCode}"
                                 );
-                                walletDataMap[walletAddress] = new { error = "No data found" };
+                                walletDataMap[walletAddress] = new { error = "API failed" };
                             }
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            _logger.LogError(
-                                $"Unexpected content type: {response.Content.Headers.ContentType.MediaType}"
-                            );
-                            walletDataMap[walletAddress] = new
-                            {
-                                error = "Unexpected content type",
-                            };
+                            _logger.LogError(ex, $"Error fetching wallet: {walletAddress}");
+                            walletDataMap[walletAddress] = new { error = "Exception" };
                         }
-                    }
-                    else
-                    {
-                        _logger.LogError(
-                            $"Failed to fetch data for wallet: {walletAddress}. Status Code: {response.StatusCode}"
-                        );
-                        walletDataMap[walletAddress] = new { error = "API call failed" };
-                    }
-                }
-                catch (Exception ex)
+                        finally
+                        {
+                            _semaphore.Release();
+                        }
+                    })
+                );
+                if (tasks.Count % _requestLimitPerSecond == 0)
                 {
-                    _logger.LogError(
-                        ex,
-                        $"Exception occurred while fetching data for wallet: {walletAddress}."
-                    );
-                    walletDataMap[walletAddress] = new { error = "Exception occurred" };
+                    await Task.Delay(_delayBetweenBatchesInMs);
                 }
             }
-
-            string formattedResult = JsonConvert.SerializeObject(
-                walletDataMap,
-                Formatting.Indented
-            );
-            // _logger.LogInformation($"Results for wallets: {formattedResult}");
-
-            return walletDataMap;
+            await Task.WhenAll(tasks);
+            return walletDataMap.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
         }
 
         public async Task<Dictionary<string, object>> GetTrendingTokensAsync()
@@ -220,17 +182,17 @@ namespace WalletScanner.Services
             try
             {
                 var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
-
-                // Adding the blockchain-specific header for Solana (if necessary)
                 request.Headers.Add("x-chain", "solana");
 
-                HttpResponseMessage response = await _httpClient.SendAsync(request);
+                HttpResponseMessage response = await _retryPolicy.ExecuteAsync(
+                    () => _httpClient.SendAsync(request)
+                );
+
+                var content = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var content = await response.Content.ReadAsStringAsync();
                     JObject json = JObject.Parse(content);
-
                     var data = json["data"];
                     if (data != null)
                     {
@@ -256,36 +218,29 @@ namespace WalletScanner.Services
                             parsedTokens.Add(parsedToken);
                         }
                         trendingTokenDataMap["tokens"] = parsedTokens;
-                        trendingTokenDataMap["updateTime"] =
-                            WalletScanner.Helpers.DateTimeHelper.UnixTimeStampToDateTime(
-                                data["updateTime"]?.ToObject<long>() ?? 0
-                            );
-                        trendingTokenDataMap["total"] = trendingTokenDataMap["total"] = data[
-                            "total"
-                        ]
-                            ?.ToObject<int>();
+                        trendingTokenDataMap["updateTime"] = DateTimeHelper.UnixTimeStampToDateTime(
+                            data["updateTime"]?.ToObject<long>() ?? 0
+                        );
+                        trendingTokenDataMap["total"] = data["total"]?.ToObject<int>();
                     }
                     else
                     {
-                        _logger.LogWarning("No 'data' field found in the response.");
-                        trendingTokenDataMap["error"] = "No data found";
+                        _logger.LogWarning("No 'data' in trending tokens.");
+                        trendingTokenDataMap["error"] = "No data";
                     }
                 }
                 else
                 {
-                    _logger.LogError(
-                        $"Failed to fetch trending tokens. Status Code: {response.StatusCode}"
-                    );
-                    trendingTokenDataMap["error"] = "API call failed";
+                    _logger.LogError($"Failed trending tokens. Status: {response.StatusCode}");
+                    trendingTokenDataMap["error"] = "API failed";
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while fetching trending tokens.");
-                trendingTokenDataMap["error"] = "Exception occurred";
+                _logger.LogError(ex, "Error fetching trending tokens.");
+                trendingTokenDataMap["error"] = "Exception";
             }
 
-            // Returning the parsed trending token data in the same format as the GetTokenListForWalletsAsync method
             return trendingTokenDataMap;
         }
 
@@ -298,17 +253,17 @@ namespace WalletScanner.Services
             try
             {
                 var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
-
-                // Adding the blockchain-specific header for Solana
                 request.Headers.Add("x-chain", "solana");
 
-                HttpResponseMessage response = await _httpClient.SendAsync(request);
+                HttpResponseMessage response = await _retryPolicy.ExecuteAsync(
+                    () => _httpClient.SendAsync(request)
+                );
+
+                var content = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var content = await response.Content.ReadAsStringAsync();
                     JObject json = JObject.Parse(content);
-
                     var data = json["data"];
                     if (data != null)
                     {
@@ -322,7 +277,7 @@ namespace WalletScanner.Services
                             {
                                 address = token["address"]?.ToString(),
                                 decimals = token["decimals"]?.ToObject<int>(),
-                                lastTradeUnixTime = WalletScanner.Helpers.DateTimeHelper.UnixTimeStampToDateTime(
+                                lastTradeUnixTime = DateTimeHelper.UnixTimeStampToDateTime(
                                     token["lastTradeUnixTime"]?.ToObject<long>() ?? 0
                                 ),
                                 liquidity = token["liquidity"]?.ToObject<decimal>(),
@@ -345,24 +300,21 @@ namespace WalletScanner.Services
                     }
                     else
                     {
-                        _logger.LogWarning("No 'data' field found in the response.");
-                        tokenDataMap["error"] = "No data found";
+                        _logger.LogWarning("No 'data' in token list.");
+                        tokenDataMap["error"] = "No data";
                     }
                 }
                 else
                 {
-                    _logger.LogError(
-                        $"Failed to fetch token list. Status Code: {response.StatusCode}"
-                    );
-                    tokenDataMap["error"] = "API call failed";
+                    _logger.LogError($"Failed token list. Status: {response.StatusCode}");
+                    tokenDataMap["error"] = "API failed";
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while fetching the token list.");
-                tokenDataMap["error"] = "Exception occurred";
+                _logger.LogError(ex, "Error fetching token list.");
+                tokenDataMap["error"] = "Exception";
             }
-            // Returning the parsed token data in the same format as the GetTokenListForWalletsAsync method
             return tokenDataMap;
         }
     }

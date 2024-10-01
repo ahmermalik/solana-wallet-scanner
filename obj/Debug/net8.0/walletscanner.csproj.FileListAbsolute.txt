@@ -278,3 +278,5 @@
 /Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/Debug/net8.0/walletscanner.pdb
 /Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/Debug/net8.0/walletscanner.genruntimeconfig.cache
 /Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/Debug/net8.0/ref/walletscanner.dll
+/Users/ahmermalik/Code/walletscanner/bin/Debug/net8.0/Polly.dll
+/Users/ahmermalik/Code/walletscanner/bin/Debug/net8.0/Polly.Core.dll

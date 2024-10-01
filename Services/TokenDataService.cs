@@ -1,7 +1,7 @@
-using WalletScanner.Repositories;
-using WalletScanner.Models;
-using WalletScanner.Services;
 using Microsoft.Extensions.Logging;
+using WalletScanner.Models;
+using WalletScanner.Repositories;
+using WalletScanner.Services;
 
 public class TokenDataService
 {
@@ -9,7 +9,7 @@ public class TokenDataService
     private readonly BirdseyeApiService _birdseyeApiService;
     private readonly TokenRepository _tokenRepository;
     private readonly WalletHoldingRepository _walletHoldingRepository;
-    private readonly ILogger<TokenDataService> _logger; 
+    private readonly ILogger<TokenDataService> _logger;
 
     public TokenDataService(
         WalletRepository walletRepository,
@@ -60,13 +60,15 @@ public class TokenDataService
 
                 // Find the wallet entry that corresponds to the wallet address
                 var walletEntry = wallets.FirstOrDefault(w => w.Address == walletAddress);
-                if (walletEntry == null) 
+                if (walletEntry == null)
                 {
-                    _logger.LogWarning($"Wallet with address {walletAddress} not found in the database.");
-                    continue;  // Skip if wallet is not found in the database
+                    _logger.LogWarning(
+                        $"Wallet with address {walletAddress} not found in the database."
+                    );
+                    continue; // Skip if wallet is not found in the database
                 }
 
-                var networkId = walletEntry.NetworkId;  // Get the NetworkId from the wallet
+                var networkId = walletEntry.NetworkId; // Get the NetworkId from the wallet
 
                 foreach (var token in walletTokens.items)
                 {
@@ -77,16 +79,25 @@ public class TokenDataService
                         var tokenSymbol = token.symbol as string;
                         var tokenName = token.name as string;
                         var tokenDecimals = token.decimals != null ? (int?)token.decimals : null;
-                        var tokenPriceUsd = token.priceUsd != null ? (decimal?)token.priceUsd : null;
-                        var tokenValueUsd = token.valueUsd != null ? (decimal?)token.valueUsd : null;
+                        var tokenPriceUsd =
+                            token.priceUsd != null ? (decimal?)token.priceUsd : null;
+                        var tokenValueUsd =
+                            token.valueUsd != null ? (decimal?)token.valueUsd : null;
 
                         // Log token info, handle nulls
-                        _logger.LogInformation($"Token Address: {tokenAddress}, Symbol: {tokenSymbol ?? "NULL"}, Name: {tokenName ?? "NULL"}");
+                        _logger.LogInformation(
+                            $"Token Address: {tokenAddress}, Symbol: {tokenSymbol ?? "NULL"}, Name: {tokenName ?? "NULL"}"
+                        );
 
                         // Check for essential fields
-                        if (string.IsNullOrWhiteSpace(tokenSymbol) || string.IsNullOrWhiteSpace(tokenName))
+                        if (
+                            string.IsNullOrWhiteSpace(tokenSymbol)
+                            || string.IsNullOrWhiteSpace(tokenName)
+                        )
                         {
-                            _logger.LogWarning($"Token with address {tokenAddress} has missing Symbol or Name. Skipping.");
+                            _logger.LogWarning(
+                                $"Token with address {tokenAddress} has missing Symbol or Name. Skipping."
+                            );
                             continue;
                         }
 
@@ -101,8 +112,8 @@ public class TokenDataService
                                 Name = tokenName,
                                 Decimals = tokenDecimals,
                                 Price = tokenPriceUsd,
-                                NetworkId = networkId,  // Use the correct NetworkId from the wallet
-                                LastUpdated = DateTime.UtcNow
+                                NetworkId = networkId, // Use the correct NetworkId from the wallet
+                                LastUpdated = DateTime.UtcNow,
                             };
                             await _tokenRepository.AddAsync(newToken);
                             _logger.LogInformation($"Added new token: {tokenSymbol} ({tokenName})");
@@ -121,7 +132,9 @@ public class TokenDataService
                             tokenPriceUsd ?? 0,
                             tokenValueUsd ?? 0
                         );
-                        _logger.LogInformation($"Updated holdings for token: {tokenSymbol} in wallet: {walletAddress}");
+                        _logger.LogInformation(
+                            $"Updated holdings for token: {tokenSymbol} in wallet: {walletAddress}"
+                        );
                     }
                     catch (Exception ex)
                     {

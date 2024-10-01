@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "/Users/ahmermalik/Documents/Code/solana-wallet-scanner/walletscanner.csproj": {}
+    "/Users/ahmermalik/Code/walletscanner/walletscanner.csproj": {}
   },
   "projects": {
-    "/Users/ahmermalik/Documents/Code/solana-wallet-scanner/walletscanner.csproj": {
+    "/Users/ahmermalik/Code/walletscanner/walletscanner.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/ahmermalik/Documents/Code/solana-wallet-scanner/walletscanner.csproj",
+        "projectUniqueName": "/Users/ahmermalik/Code/walletscanner/walletscanner.csproj",
         "projectName": "walletscanner",
-        "projectPath": "/Users/ahmermalik/Documents/Code/solana-wallet-scanner/walletscanner.csproj",
+        "projectPath": "/Users/ahmermalik/Code/walletscanner/walletscanner.csproj",
         "packagesPath": "/Users/ahmermalik/.nuget/packages/",
-        "outputPath": "/Users/ahmermalik/Documents/Code/solana-wallet-scanner/obj/",
+        "outputPath": "/Users/ahmermalik/Code/walletscanner/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/Users/ahmermalik/.nuget/NuGet/NuGet.Config"
@@ -66,6 +66,10 @@
             "Newtonsoft.Json": {
               "target": "Package",
               "version": "[13.0.3, )"
+            },
+            "Polly": {
+              "target": "Package",
+              "version": "[8.4.2, )"
             },
             "RestSharp": {
               "target": "Package",
