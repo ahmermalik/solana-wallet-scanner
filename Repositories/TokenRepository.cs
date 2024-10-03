@@ -18,24 +18,23 @@ namespace WalletScanner.Repositories
         // Fetch all tokens
         public async Task<List<Token>> GetAllTokensAsync()
         {
-            return await _context.Tokens
-                .Include(t => t.Network)
-                .ToListAsync();
+            return await _context.Tokens.Include(t => t.Network).ToListAsync();
         }
 
         // Fetch a token by its address and network
         public async Task<Token?> GetTokenByAddressAsync(string address, int networkId)
         {
-            return await _context.Tokens
-                .Include(t => t.Network)
+            return await _context
+                .Tokens.Include(t => t.Network)
                 .FirstOrDefaultAsync(t => t.Address == address && t.NetworkId == networkId);
         }
 
         // Method to get a token by its address
-        public async Task<Token?> GetByAddressAsync(string address)
+        public async Task<Token?> GetByAddressAsync(string address, int networkId)
         {
-            return await _context.Tokens
-                .FirstOrDefaultAsync(t => t.Address == address);
+            return await _context.Tokens.FirstOrDefaultAsync(t =>
+                t.Address == address && t.NetworkId == networkId
+            );
         }
 
         // Method to add a new token
@@ -48,10 +47,16 @@ namespace WalletScanner.Repositories
         // Fetch token metrics
         public async Task<TokenMetric?> GetTokenMetricsAsync(int tokenId)
         {
-            return await _context.TokenMetrics
-                .Include(tm => tm.Token)
+            return await _context
+                .TokenMetrics.Include(tm => tm.Token)
                 .Include(tm => tm.Network)
                 .FirstOrDefaultAsync(tm => tm.TokenId == tokenId);
+        }
+
+        public async Task AddRangeAsync(IEnumerable<Token> tokens)
+        {
+            _context.Tokens.AddRange(tokens);
+            await _context.SaveChangesAsync();
         }
     }
 }

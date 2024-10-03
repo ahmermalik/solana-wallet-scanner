@@ -22,7 +22,7 @@ namespace WalletScanner.Services
         private readonly ILogger<BirdseyeApiService> _logger;
         private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy;
         private readonly SemaphoreSlim _semaphore;
-        private readonly int _requestLimitPerSecond = 13; // Approx. 13 requests per second (1000 requests/minute limit)
+        private readonly int _requestLimitPerSecond = 1; // Approx. 3 requests per second (1000 requests/minute limit)
         private readonly int _delayBetweenBatchesInMs = 1000; // 1 second delay between batches
 
         public BirdseyeApiService(
@@ -60,11 +60,11 @@ namespace WalletScanner.Services
             _semaphore = new SemaphoreSlim(_requestLimitPerSecond); // Adjust based on rate limits
         }
 
-        public async Task<Dictionary<string, object>> GetTokenListForWalletsAsync(
+        public async Task<Dictionary<string, WalletData>> GetTokenListForWalletsAsync(
             List<string> walletAddresses
         )
         {
-            var walletDataMap = new ConcurrentDictionary<string, object>();
+            var walletDataMap = new ConcurrentDictionary<string, WalletData>();
             var tasks = new List<Task>();
 
             foreach (var walletAddress in walletAddresses)
@@ -100,31 +100,31 @@ namespace WalletScanner.Services
                                             data["items"]?.ToObject<List<JObject>>()
                                             ?? new List<JObject>();
 
-                                        var parsedItems = new List<object>();
+                                        var parsedItems = new List<TokenItem>();
                                         foreach (var item in items)
                                         {
-                                            var parsedItem = new
+                                            var parsedItem = new TokenItem
                                             {
-                                                address = item["address"]?.ToString(),
-                                                decimals = item["decimals"]?.ToObject<int>(),
-                                                balance = item["balance"]?.ToObject<long>(),
-                                                uiAmount = item["uiAmount"]?.ToObject<decimal>(),
-                                                chainId = item["chainId"]?.ToString(),
-                                                name = item["name"]?.ToString(),
-                                                symbol = item["symbol"]?.ToString(),
-                                                logoURI = item["logoURI"]?.ToString(),
-                                                priceUsd = item["priceUsd"]?.ToObject<decimal>(),
-                                                valueUsd = item["valueUsd"]?.ToObject<decimal>(),
+                                                Address = item["address"]?.ToString(),
+                                                Decimals = item["decimals"]?.ToObject<int>(),
+                                                Balance = item["balance"]?.ToObject<long>(),
+                                                UiAmount = item["uiAmount"]?.ToObject<decimal>(),
+                                                ChainId = item["chainId"]?.ToString(),
+                                                Name = item["name"]?.ToString(),
+                                                Symbol = item["symbol"]?.ToString(),
+                                                LogoURI = item["logoURI"]?.ToString(),
+                                                PriceUsd = item["priceUsd"]?.ToObject<decimal>(),
+                                                ValueUsd = item["valueUsd"]?.ToObject<decimal>(),
                                             };
 
                                             parsedItems.Add(parsedItem);
                                         }
 
-                                        walletDataMap[walletAddress] = new
+                                        walletDataMap[walletAddress] = new WalletData
                                         {
-                                            wallet = data["wallet"]?.ToString(),
-                                            totalUsd = data["totalUsd"]?.ToObject<decimal>(),
-                                            items = parsedItems,
+                                            Wallet = data["wallet"]?.ToString(),
+                                            TotalUsd = data["totalUsd"]?.ToObject<decimal>(),
+                                            Items = parsedItems,
                                         };
                                     }
                                     else
@@ -132,7 +132,10 @@ namespace WalletScanner.Services
                                         _logger.LogWarning(
                                             $"No 'data' field for wallet {walletAddress}"
                                         );
-                                        walletDataMap[walletAddress] = new { error = "No data" };
+                                        walletDataMap[walletAddress] = new WalletData
+                                        {
+                                            Error = "No data",
+                                        };
                                     }
                                 }
                                 else
@@ -140,9 +143,9 @@ namespace WalletScanner.Services
                                     _logger.LogError(
                                         $"Unexpected content type: {response.Content.Headers.ContentType.MediaType}"
                                     );
-                                    walletDataMap[walletAddress] = new
+                                    walletDataMap[walletAddress] = new WalletData
                                     {
-                                        error = "Bad content type",
+                                        Error = "Bad content type",
                                     };
                                 }
                             }
@@ -151,13 +154,16 @@ namespace WalletScanner.Services
                                 _logger.LogError(
                                     $"Failed for wallet: {walletAddress}. Status: {response.StatusCode}"
                                 );
-                                walletDataMap[walletAddress] = new { error = "API failed" };
+                                walletDataMap[walletAddress] = new WalletData
+                                {
+                                    Error = "API failed",
+                                };
                             }
                         }
                         catch (Exception ex)
                         {
                             _logger.LogError(ex, $"Error fetching wallet: {walletAddress}");
-                            walletDataMap[walletAddress] = new { error = "Exception" };
+                            walletDataMap[walletAddress] = new WalletData { Error = "Exception" };
                         }
                         finally
                         {
@@ -165,13 +171,14 @@ namespace WalletScanner.Services
                         }
                     })
                 );
+
                 if (tasks.Count % _requestLimitPerSecond == 0)
                 {
                     await Task.Delay(_delayBetweenBatchesInMs);
                 }
             }
             await Task.WhenAll(tasks);
-            return walletDataMap.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            return new Dictionary<string, WalletData>(walletDataMap);
         }
 
         public async Task<Dictionary<string, object>> GetTrendingTokensAsync()
@@ -317,5 +324,27 @@ namespace WalletScanner.Services
             }
             return tokenDataMap;
         }
+    }
+
+    public class WalletData
+    {
+        public string Wallet { get; set; }
+        public decimal? TotalUsd { get; set; }
+        public List<TokenItem> Items { get; set; }
+        public string Error { get; set; }
+    }
+
+    public class TokenItem
+    {
+        public string Address { get; set; }
+        public int? Decimals { get; set; }
+        public long? Balance { get; set; }
+        public decimal? UiAmount { get; set; }
+        public string ChainId { get; set; }
+        public string Name { get; set; }
+        public string Symbol { get; set; }
+        public string LogoURI { get; set; }
+        public decimal? PriceUsd { get; set; }
+        public decimal? ValueUsd { get; set; }
     }
 }
