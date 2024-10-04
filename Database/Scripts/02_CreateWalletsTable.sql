@@ -2,6 +2,7 @@ CREATE TABLE Wallets (
     WalletId INT IDENTITY(1,1) PRIMARY KEY,
     NetworkId INT NOT NULL,
     Address VARCHAR(255) NOT NULL,
+    Name VARCHAR(255), 
     TotalUsdValue DECIMAL(38, 18),
     LastUpdated DATETIME2,
     FOREIGN KEY (NetworkId) REFERENCES Networks(NetworkId)

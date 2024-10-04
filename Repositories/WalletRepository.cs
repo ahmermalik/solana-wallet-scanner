@@ -15,28 +15,21 @@ namespace WalletScanner.Repositories
             _context = context;
         }
 
+        // WalletRepository.cs
         public async Task<List<Wallet>> GetAllWalletsAsync()
         {
-            return await _context.Wallets
-                .Select(w => new Wallet
-                {
-                    Address = w.Address,
-                    NetworkId = w.NetworkId,  // Ensure NetworkId is fetched
-                    TotalUsdValue = w.TotalUsdValue,
-                    LastUpdated = w.LastUpdated
-                })
-                .ToListAsync();
+            return await _context.Wallets.ToListAsync();
         }
 
         public List<WalletHolding> GetWalletHoldingsByToken(string tokenSymbol, int networkId)
         {
-            return _context.WalletHoldings
-                .Include(wh => wh.Token)
+            return _context
+                .WalletHoldings.Include(wh => wh.Token)
                 .Include(wh => wh.Wallet)
                 .Where(wh =>
-                    wh.Token != null &&
-                    wh.Token.Symbol == tokenSymbol &&
-                    wh.Token.NetworkId == networkId
+                    wh.Token != null
+                    && wh.Token.Symbol == tokenSymbol
+                    && wh.Token.NetworkId == networkId
                 )
                 .ToList();
         }
@@ -44,8 +37,8 @@ namespace WalletScanner.Repositories
         // Additional method to get wallet by address and network
         public Wallet GetWalletByAddress(string walletAddress, int networkId)
         {
-            return _context.Wallets
-                .Include(w => w.Network)
+            return _context
+                .Wallets.Include(w => w.Network)
                 .FirstOrDefault(w => w.Address == walletAddress && w.NetworkId == networkId);
         }
     }
