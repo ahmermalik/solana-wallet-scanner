@@ -1,0 +1,3 @@
+SELECT *
+FROM Wallets
+WHERE Address = '71CPXu3TvH3iUKaY1bNkAAow24k6tjH473SsKprQBABC';
