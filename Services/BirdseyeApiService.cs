@@ -12,6 +12,7 @@ using Newtonsoft.Json.Linq;
 using Polly;
 using Polly.Retry;
 using WalletScanner.Helpers;
+using WalletScanner.Models;
 
 namespace WalletScanner.Services
 {
@@ -23,7 +24,7 @@ namespace WalletScanner.Services
         private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy;
         private readonly SemaphoreSlim _semaphore;
         private readonly int _requestLimitPerSecond = 1; // Approx. 3 requests per second (1000 requests/minute limit)
-        private readonly int _delayBetweenBatchesInMs = 1000; // 1 second delay between batches
+        private readonly int _delayBetweenBatchesInMs = 2000; // 1 second delay between batches
 
         public BirdseyeApiService(
             IConfiguration configuration,
@@ -61,14 +62,15 @@ namespace WalletScanner.Services
         }
 
         public async Task<Dictionary<string, WalletData>> GetTokenListForWalletsAsync(
-            List<string> walletAddresses
+            List<Wallet> wallets
         )
         {
             var walletDataMap = new ConcurrentDictionary<string, WalletData>();
             var tasks = new List<Task>();
 
-            foreach (var walletAddress in walletAddresses)
+            foreach (var wallet in wallets)
             {
+                var currentWallet = wallet; // Create a local copy of 'wallet'
                 await _semaphore.WaitAsync();
 
                 tasks.Add(
@@ -77,9 +79,26 @@ namespace WalletScanner.Services
                         try
                         {
                             string endpoint =
-                                $"https://public-api.birdeye.so/v1/wallet/token_list?wallet={walletAddress}";
+                                $"https://public-api.birdeye.so/v1/wallet/token_list?wallet={currentWallet.Address}";
+                            var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
+
+                            if (currentWallet.Network == null)
+                            {
+                                _logger.LogError(
+                                    $"Network is null for wallet: {currentWallet.Address}"
+                                );
+                                walletDataMap[currentWallet.Address] = new WalletData
+                                {
+                                    Error = "Network is null",
+                                };
+                                return; // Or continue to skip processing this wallet
+                            }
+
+                            // Now it's safe to use currentWallet.Network.Name
+                            request.Headers.Add("x-chain", currentWallet.Network.Name);
+
                             HttpResponseMessage response = await _retryPolicy.ExecuteAsync(
-                                () => _httpClient.GetAsync(endpoint)
+                                () => _httpClient.SendAsync(request)
                             );
 
                             var content = await response.Content.ReadAsStringAsync();
@@ -103,24 +122,64 @@ namespace WalletScanner.Services
                                         var parsedItems = new List<TokenItem>();
                                         foreach (var item in items)
                                         {
-                                            var parsedItem = new TokenItem
+                                            var parsedItem = new TokenItem();
+
+                                            parsedItem.Address = item["address"]?.ToString();
+                                            parsedItem.Decimals = item["decimals"]
+                                                ?.ToObject<int?>();
+                                            parsedItem.ChainId = item["chainId"]?.ToString();
+                                            parsedItem.Name = item["name"]?.ToString();
+                                            parsedItem.Symbol = item["symbol"]?.ToString();
+                                            parsedItem.LogoURI = item["logoURI"]?.ToString();
+
+                                            // Parse Balance with error handling
+                                            string balanceStr = item["balance"]?.ToString();
+                                            decimal? balance = null;
+                                            try
                                             {
-                                                Address = item["address"]?.ToString(),
-                                                Decimals = item["decimals"]?.ToObject<int>(),
-                                                Balance = item["balance"]?.ToObject<long>(),
-                                                UiAmount = item["uiAmount"]?.ToObject<decimal>(),
-                                                ChainId = item["chainId"]?.ToString(),
-                                                Name = item["name"]?.ToString(),
-                                                Symbol = item["symbol"]?.ToString(),
-                                                LogoURI = item["logoURI"]?.ToString(),
-                                                PriceUsd = item["priceUsd"]?.ToObject<decimal>(),
-                                                ValueUsd = item["valueUsd"]?.ToObject<decimal>(),
-                                            };
+                                                if (!string.IsNullOrEmpty(balanceStr))
+                                                {
+                                                    balance = decimal.Parse(
+                                                        balanceStr,
+                                                        System.Globalization.NumberStyles.Any,
+                                                        System
+                                                            .Globalization
+                                                            .CultureInfo
+                                                            .InvariantCulture
+                                                    );
+                                                }
+                                            }
+                                            catch (OverflowException)
+                                            {
+                                                _logger.LogWarning(
+                                                    $"Balance value too large for address {parsedItem.Address}: {balanceStr}"
+                                                );
+                                            }
+                                            catch (FormatException)
+                                            {
+                                                _logger.LogWarning(
+                                                    $"Invalid balance format for address {parsedItem.Address}: {balanceStr}"
+                                                );
+                                            }
+                                            parsedItem.Balance = balance;
+                                             Balance = item["balance"]?.ToObject<string>(),
+
+                                            // Parse UiAmount
+                                            parsedItem.UiAmount = item["uiAmount"]
+                                                ?.ToObject<decimal?>();
+
+                                            // Parse PriceUsd
+                                            parsedItem.PriceUsd = item["priceUsd"]
+                                                ?.ToObject<decimal?>();
+
+                                            // Parse ValueUsd
+                                            parsedItem.ValueUsd = item["valueUsd"]
+                                                ?.ToObject<decimal?>();
 
                                             parsedItems.Add(parsedItem);
                                         }
 
-                                        walletDataMap[walletAddress] = new WalletData
+                                        walletDataMap[currentWallet.Address] = new WalletData
                                         {
                                             Wallet = data["wallet"]?.ToString(),
                                             TotalUsd = data["totalUsd"]?.ToObject<decimal>(),
@@ -130,9 +189,9 @@ namespace WalletScanner.Services
                                     else
                                     {
                                         _logger.LogWarning(
-                                            $"No 'data' field for wallet {walletAddress}"
+                                            $"No 'data' field for wallet {currentWallet.Address}"
                                         );
-                                        walletDataMap[walletAddress] = new WalletData
+                                        walletDataMap[currentWallet.Address] = new WalletData
                                         {
                                             Error = "No data",
                                         };
@@ -143,7 +202,7 @@ namespace WalletScanner.Services
                                     _logger.LogError(
                                         $"Unexpected content type: {response.Content.Headers.ContentType.MediaType}"
                                     );
-                                    walletDataMap[walletAddress] = new WalletData
+                                    walletDataMap[currentWallet.Address] = new WalletData
                                     {
                                         Error = "Bad content type",
                                     };
@@ -152,9 +211,9 @@ namespace WalletScanner.Services
                             else
                             {
                                 _logger.LogError(
-                                    $"Failed for wallet: {walletAddress}. Status: {response.StatusCode}"
+                                    $"Failed for wallet: {currentWallet.Address}. Status: {response.StatusCode}"
                                 );
-                                walletDataMap[walletAddress] = new WalletData
+                                walletDataMap[currentWallet.Address] = new WalletData
                                 {
                                     Error = "API failed",
                                 };
@@ -162,8 +221,11 @@ namespace WalletScanner.Services
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(ex, $"Error fetching wallet: {walletAddress}");
-                            walletDataMap[walletAddress] = new WalletData { Error = "Exception" };
+                            _logger.LogError(ex, $"Error fetching wallet: {currentWallet.Address}");
+                            walletDataMap[currentWallet.Address] = new WalletData
+                            {
+                                Error = "Exception",
+                            };
                         }
                         finally
                         {
@@ -338,7 +400,7 @@ namespace WalletScanner.Services
     {
         public string Address { get; set; }
         public int? Decimals { get; set; }
-        public long? Balance { get; set; }
+        public string Balance { get; set; }
         public decimal? UiAmount { get; set; }
         public string ChainId { get; set; }
         public string Name { get; set; }

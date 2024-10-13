@@ -48,7 +48,7 @@ public class TokenDataService
             var walletAddresses = wallets.Select(w => w.Address).ToList();
 
             // Step 3: Fetch token data from Birdseye API
-            var tokenData = await _birdseyeApiService.GetTokenListForWalletsAsync(walletAddresses);
+            var tokenData = await _birdseyeApiService.GetTokenListForWalletsAsync(wallets);
 
             // Collections for batching
             var newTokens = new List<Token>();
@@ -176,7 +176,7 @@ public class TokenDataService
             // Step 5: Insert new tokens in batches
             if (newTokens.Any())
             {
-                const int tokenBatchSize = 100; // Adjust batch size as needed
+                const int tokenBatchSize = 300; // Adjust batch size as needed
                 for (int i = 0; i < newTokens.Count; i += tokenBatchSize)
                 {
                     var batch = newTokens.Skip(i).Take(tokenBatchSize).ToList();

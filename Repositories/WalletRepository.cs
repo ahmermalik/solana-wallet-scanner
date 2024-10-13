@@ -18,7 +18,9 @@ namespace WalletScanner.Repositories
         // WalletRepository.cs
         public async Task<List<Wallet>> GetAllWalletsAsync()
         {
-            return await _context.Wallets.ToListAsync();
+            return await _context
+                .Wallets.Include(w => w.Network) // Ensure Network is included
+                .ToListAsync();
         }
 
         public List<WalletHolding> GetWalletHoldingsByToken(string tokenSymbol, int networkId)

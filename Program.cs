@@ -85,21 +85,17 @@ app.UseRouting();
 app.MapControllers();
 
 // **Add API Endpoint for GetTokenListForWalletsAsync**
+// Program.cs
 app.MapGet(
     "/tokens",
-    async (BirdseyeApiService birdseyeApiService) =>
+    async (BirdseyeApiService birdseyeApiService, WalletRepository walletRepository) =>
     {
-        var walletAddresses = new List<string>
-        {
-            "CTFJEcxBjbx8yP8siAqiyQ9QSg7bS3kPH43oRobjsWXw",
-            "55NQkFDwwW8noThkL9Rd5ngbgUU36fYZeos1k5ZwjGdn",
-            // Add more wallet addresses as needed
-        };
-
-        var result = await birdseyeApiService.GetTokenListForWalletsAsync(walletAddresses);
+        var wallets = await walletRepository.GetAllWalletsAsync();
+        var result = await birdseyeApiService.GetTokenListForWalletsAsync(wallets);
         return Results.Json(result);
     }
 );
+
 app.MapGet(
     "/trending-tokens",
     async (BirdseyeApiService birdseyeApiService) =>
