@@ -13,7 +13,6 @@ using Polly;
 using Polly.Retry;
 using WalletScanner.Helpers;
 using WalletScanner.Models;
-using System.Numerics;
 
 namespace WalletScanner.Services
 {
@@ -132,34 +131,21 @@ namespace WalletScanner.Services
                                             parsedItem.Symbol = item["symbol"]?.ToString();
                                             parsedItem.LogoURI = item["logoURI"]?.ToString();
 
-                                            // Parse Balance with error handling
-                                            string balanceStr = item["balance"]?.ToString();
                                             // Assign the string balance directly
+                                            string balanceStr = item["balance"]?.ToString();
                                             parsedItem.Balance = balanceStr;
 
-                                            // Optional: Attempt to parse balance for logging
-                                            decimal? balance = null;
-                                            try
+                                            // Log the balance as a string directly
+                                            if (!string.IsNullOrEmpty(balanceStr))
                                             {
-                                                if (!string.IsNullOrEmpty(balanceStr))
-                                                {
-                                                    balance = decimal.Parse(
-                                                        balanceStr,
-                                                        System.Globalization.NumberStyles.Any,
-                                                        System.Globalization.CultureInfo.InvariantCulture
-                                                    );
-                                                }
-                                            }
-                                            catch (OverflowException)
-                                            {
-                                                _logger.LogWarning(
-                                                    $"Balance value too large for address {parsedItem.Address}: {balanceStr}"
+                                                _logger.LogInformation(
+                                                    $"Balance for address {parsedItem.Address}: {balanceStr}"
                                                 );
                                             }
-                                            catch (FormatException)
+                                            else
                                             {
                                                 _logger.LogWarning(
-                                                    $"Invalid balance format for address {parsedItem.Address}: {balanceStr}"
+                                                    $"Balance is null or empty for address {parsedItem.Address}."
                                                 );
                                             }
 

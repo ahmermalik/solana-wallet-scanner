@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WalletScanner.Data;
 
@@ -11,9 +12,11 @@ using WalletScanner.Data;
 namespace walletscanner.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241013010254_ChangeBalanceToString")]
+    partial class ChangeBalanceToString
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -465,8 +468,8 @@ namespace walletscanner.Migrations
 
                     b.Property<string>("Balance")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasPrecision(25, 6)
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal?>("PriceUsd")
                         .HasPrecision(25, 6)

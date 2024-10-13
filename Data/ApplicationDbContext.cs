@@ -102,12 +102,11 @@ namespace WalletScanner.Data
             modelBuilder.Entity<WalletHolding>(entity =>
             {
                 // Configure decimal properties with increased precision and scale
-                entity.Property(e => e.Balance).HasPrecision(25, 6);
-
+                entity.Property(e => e.Balance)
+                .IsRequired()
+                .HasMaxLength(100);
                 entity.Property(e => e.UiAmount).HasPrecision(25, 6);
-
                 entity.Property(e => e.ValueUsd).HasPrecision(25, 6);
-
                 entity.Property(e => e.PriceUsd).HasPrecision(25, 6);
             });
 

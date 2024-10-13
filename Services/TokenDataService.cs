@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using WalletScanner.Models;
 using WalletScanner.Repositories;
 using WalletScanner.Services;
+using System.Numerics;
 
 public class TokenDataService
 {
@@ -154,7 +155,7 @@ public class TokenDataService
                             WalletId = wallet.WalletId,
                             TokenAddress = tokenItem.Address,
                             NetworkId = networkId,
-                            Balance = tokenItem.Balance ?? 0,
+                            Balance = tokenItem.Balance ?? "0", // Changed to string
                             UiAmount = tokenItem.UiAmount ?? 0,
                             PriceUsd = tokenItem.PriceUsd ?? 0,
                             ValueUsd = tokenItem.ValueUsd ?? 0,
@@ -205,7 +206,7 @@ public class TokenDataService
                     {
                         WalletId = holdingData.WalletId,
                         TokenId = tokenId,
-                        Balance = holdingData.Balance,
+                        Balance = holdingData.Balance, // Now a string
                         UiAmount = holdingData.UiAmount,
                         PriceUsd = holdingData.PriceUsd,
                         ValueUsd = holdingData.ValueUsd,
@@ -246,7 +247,7 @@ public class WalletHoldingData
     public int WalletId { get; set; }
     public string TokenAddress { get; set; }
     public int NetworkId { get; set; }
-    public long Balance { get; set; }
+    public string Balance { get; set; } // Changed to string
     public decimal UiAmount { get; set; }
     public decimal PriceUsd { get; set; }
     public decimal ValueUsd { get; set; }

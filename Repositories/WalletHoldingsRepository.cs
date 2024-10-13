@@ -14,11 +14,11 @@ public class WalletHoldingRepository
         _context = context;
     }
 
-    // Existing method (if still needed)
+    // Corrected method
     public async Task UpsertWalletHoldingAsync(
         string walletAddress,
         string tokenAddress,
-        long balance,
+        string balance, 
         decimal uiAmount,
         decimal priceUsd,
         decimal valueUsd
@@ -44,7 +44,7 @@ public class WalletHoldingRepository
             {
                 WalletId = wallet.WalletId,
                 TokenId = token.TokenId,
-                Balance = balance,
+                Balance = balance, // Now a string
                 UiAmount = uiAmount,
                 PriceUsd = priceUsd,
                 ValueUsd = valueUsd,
@@ -54,7 +54,7 @@ public class WalletHoldingRepository
         else
         {
             // Update existing wallet holding
-            walletHolding.Balance = balance;
+            walletHolding.Balance = balance; // Now a string
             walletHolding.UiAmount = uiAmount;
             walletHolding.PriceUsd = priceUsd;
             walletHolding.ValueUsd = valueUsd;
@@ -63,7 +63,7 @@ public class WalletHoldingRepository
         await _context.SaveChangesAsync();
     }
 
-    // New method for batch upsert
+    // New method for batch upsert remains unchanged as it correctly handles Balance as string
     public async Task UpsertWalletHoldingsAsync(IEnumerable<WalletHolding> holdings)
     {
         // Prepare lists for new and existing holdings
@@ -90,7 +90,7 @@ public class WalletHoldingRepository
             if (existingHoldingsLookup.TryGetValue(key, out var existingHolding))
             {
                 // Update existing holding
-                existingHolding.Balance = holding.Balance;
+                existingHolding.Balance = holding.Balance; // Now a string
                 existingHolding.UiAmount = holding.UiAmount;
                 existingHolding.PriceUsd = holding.PriceUsd;
                 existingHolding.ValueUsd = holding.ValueUsd;
