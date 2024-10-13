@@ -13,6 +13,7 @@ using Polly;
 using Polly.Retry;
 using WalletScanner.Helpers;
 using WalletScanner.Models;
+using System.Numerics;
 
 namespace WalletScanner.Services
 {
@@ -23,8 +24,8 @@ namespace WalletScanner.Services
         private readonly ILogger<BirdseyeApiService> _logger;
         private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy;
         private readonly SemaphoreSlim _semaphore;
-        private readonly int _requestLimitPerSecond = 1; // Approx. 3 requests per second (1000 requests/minute limit)
-        private readonly int _delayBetweenBatchesInMs = 2000; // 1 second delay between batches
+        private readonly int _requestLimitPerSecond = 1; // Adjust based on rate limits
+        private readonly int _delayBetweenBatchesInMs = 2000; // 2 seconds delay between batches
 
         public BirdseyeApiService(
             IConfiguration configuration,
@@ -91,7 +92,7 @@ namespace WalletScanner.Services
                                 {
                                     Error = "Network is null",
                                 };
-                                return; // Or continue to skip processing this wallet
+                                return; // Skip processing this wallet
                             }
 
                             // Now it's safe to use currentWallet.Network.Name
@@ -125,8 +126,7 @@ namespace WalletScanner.Services
                                             var parsedItem = new TokenItem();
 
                                             parsedItem.Address = item["address"]?.ToString();
-                                            parsedItem.Decimals = item["decimals"]
-                                                ?.ToObject<int?>();
+                                            parsedItem.Decimals = item["decimals"]?.ToObject<int?>();
                                             parsedItem.ChainId = item["chainId"]?.ToString();
                                             parsedItem.Name = item["name"]?.ToString();
                                             parsedItem.Symbol = item["symbol"]?.ToString();
@@ -134,6 +134,10 @@ namespace WalletScanner.Services
 
                                             // Parse Balance with error handling
                                             string balanceStr = item["balance"]?.ToString();
+                                            // Assign the string balance directly
+                                            parsedItem.Balance = balanceStr;
+
+                                            // Optional: Attempt to parse balance for logging
                                             decimal? balance = null;
                                             try
                                             {
@@ -142,10 +146,7 @@ namespace WalletScanner.Services
                                                     balance = decimal.Parse(
                                                         balanceStr,
                                                         System.Globalization.NumberStyles.Any,
-                                                        System
-                                                            .Globalization
-                                                            .CultureInfo
-                                                            .InvariantCulture
+                                                        System.Globalization.CultureInfo.InvariantCulture
                                                     );
                                                 }
                                             }
@@ -161,20 +162,15 @@ namespace WalletScanner.Services
                                                     $"Invalid balance format for address {parsedItem.Address}: {balanceStr}"
                                                 );
                                             }
-                                            parsedItem.Balance = balance;
-                                             Balance = item["balance"]?.ToObject<string>(),
 
                                             // Parse UiAmount
-                                            parsedItem.UiAmount = item["uiAmount"]
-                                                ?.ToObject<decimal?>();
+                                            parsedItem.UiAmount = item["uiAmount"]?.ToObject<decimal?>();
 
                                             // Parse PriceUsd
-                                            parsedItem.PriceUsd = item["priceUsd"]
-                                                ?.ToObject<decimal?>();
+                                            parsedItem.PriceUsd = item["priceUsd"]?.ToObject<decimal?>();
 
                                             // Parse ValueUsd
-                                            parsedItem.ValueUsd = item["valueUsd"]
-                                                ?.ToObject<decimal?>();
+                                            parsedItem.ValueUsd = item["valueUsd"]?.ToObject<decimal?>();
 
                                             parsedItems.Add(parsedItem);
                                         }
@@ -266,7 +262,8 @@ namespace WalletScanner.Services
                     if (data != null)
                     {
                         var tokens =
-                            data["tokens"]?.ToObject<List<JObject>>() ?? new List<JObject>();
+                            data["tokens"]?.ToObject<List<JObject>>()
+                            ?? new List<JObject>();
 
                         var parsedTokens = new List<object>();
                         foreach (var token in tokens)
@@ -337,7 +334,8 @@ namespace WalletScanner.Services
                     if (data != null)
                     {
                         var tokens =
-                            data["tokens"]?.ToObject<List<JObject>>() ?? new List<JObject>();
+                            data["tokens"]?.ToObject<List<JObject>>()
+                            ?? new List<JObject>();
 
                         var parsedTokens = new List<object>();
                         foreach (var token in tokens)
@@ -400,7 +398,7 @@ namespace WalletScanner.Services
     {
         public string Address { get; set; }
         public int? Decimals { get; set; }
-        public string Balance { get; set; }
+        public string Balance { get; set; } 
         public decimal? UiAmount { get; set; }
         public string ChainId { get; set; }
         public string Name { get; set; }
